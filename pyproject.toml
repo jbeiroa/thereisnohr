@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "thereisnohr"
+version = "0.1.0"
+description = "A simple AI tool to automate resume selection,"
+authors = ["Juan Beiroa <jbeiroa@gmail.com>"]
+license = "CC BY-NC 4.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+ollama = "^0.4.2"
+pymupdf = "^1.24.14"
+pandas = "^2.2.3"
+pymupdf4llm = "^0.0.17"
+
+[tool.poetry.group.dev.dependencies]
+jupyter = "^1.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
