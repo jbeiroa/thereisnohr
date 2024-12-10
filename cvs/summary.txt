@@ -1,86 +1,80 @@
+Juan Ignacio Beiroa
+- Skills: Technical - Git, Excel, Python, Javascript, HTML, CSS; Non-technical - Data Analytics & Machine Learning: Python (Pandas, Scikit-learn), SQL, Data Visualization (Dash, Plotly); Physics - University of Buenos Aires; AI Diploma - Humai Institute
+- Experience:
+    - Teaching/Research Positions:
+        - Assistant Professor, Taught Introductory Physics for Biologists, Geologists and Chemists from 2016 to 2017.
+        - Currently teaching Physics and Introduction to Biophysics subject for Medical and Veterinary Careers.
+    - Non-Teaching Roles:
+        - Coordinator of the Science and Technology Department at Bayard School (currently).
+        - Advisor to the Secretary General; Advisor to the Federal Council of Education.
+    - Other Relevant Professional Experience:
+        - Developed a data-driven Early Warning System for School Dropout using Python, achieving a 75% classification rate for risk identification (MVP).
+        - Designed and conducted acoustic experiments for behavioral studies in fish utilizing finite element simulations and data-driven insights to optimize experimental setups.
+- Education:
+    - University of Buenos Aires
+    - Pedagogical University
+
+-------------------
+
+**Reuniones y Participaciones**
+
+* Reunión Nacional de Enseñanza de la Física XXI Oct. 2019
+* Unidad Didáctica disponible para docentes en Reunión Nacional de Enseñanza de la Física XXI Oct. 2019
+* Desarrollo contenidos digitales gratuitos para docentes y participación en didacTIC.ar
+
+**Desarrollo de Contenidos**
+
+* Diseño y dictado de talleres y cursos sobre tecnología educativa
+* Participación en el curso "Informática Educativa" de la FCEyN-UBA
+* Desarrollo de un curso de primeros auxilios y RCP DEA
+
+**Servicios Comunitarios**
+
+* Organización de una semana de divulgación sobre las ciencias físicas para alumnos y docentes en Semana de la Física Ago. 2014 y Ago. 2015
+* Participación en "Estaciones Fluidos" en Almagro, CABA (Semana de la Física Ago. 2014)
+* Participación en "Estación Electromagnetismo" en Almagro, CABA (Semana de la Física Ago. 2014)
+
+**Experiencias y Reconocimientos**
+
+* Exposición de trabajo de "Beiroa J. I." como autor de presentación mural
+* Participación en el Congreso Mundial de Educación 2020 en Defensa de la Educación Pública
+
+-------------------
+
+Name: Juan Beiroa
+
+Skills:
+- Technical skills: Illustrator CC, Python programming languages, SQL database management, data analysis tools, and statistical software
+- Non-technical skills: Programming languages, data science, physics, communication, leadership, project management, research, teaching, policy development
+
+-------------------
+
 Name: Juan Ignacio Beiroa
 Skills:
-- Technical: Git, Excel, Python, Javascript, HTML, CSS
-- Non-Technical: Data Analytics & Machine Learning, Physics, Academic Writing, Research Methodology
-Experience:
-- Teaching/Research positions: Introductory Physics for Biologists, Geologists and Chemists (2016-2017), Taught Physics and Introduction to Biophysics subject for Medical and Veterinary Careers (Current)
-- Non-teaching roles: Coordinator of the Science and Technology Department at Bayard School, Led data collection and fiscal analysis for union negotiations
-Education:
-- Degrees obtained: University of Buenos Aires, Pedagogical University; Diploma in AI - Humai Institute
-  Courses taken: Introduction to AI, Spec. in Education Policies
-
--------------------
-
-**Revisión de RÉSUMÉ**
-
-* Informática Educativa: se enfoca en la tecnología educativa y su implementación en el aula escolar
-* Didáctica Específica y Prácticas de la Enseñanza II del Profesorado de Física de la FCEyN-UBA: se desarrollan unidades didácticas específicas para esta materia
-* Unidad Didáctica diseñada en la Matería Didáctica General del Profesorado de Física de la FECyN: se presenta como una unidad de aprendizaje en línea
-* Reunión Nacional de Enseñanza de la Física XXI (Oct. 2019): se presentó el proyecto "Anales de experiencias docentes REFXXI"
-* Desarrollo de contenidos digitales gratuitos para docentes: se publican regularmente en Instagram @didacTIC.ar
-* Diseño y dictado de talleres y cursos sobre tecnología educativa: participación del equipo del curso
-* Curso de primeros auxilios y RCP DEA (May. 2019): se dicta el curso en el Centro Médico Víctor Baltao
-
--------------------
-
-Name: Jibeiroa
-Skills:
-- Illustrator CC: Comunicación Gráfica
-- Fundamentos de Programación
-- The Ultimate MySQL Bootcamp: Go from SQL Beginner to Expert
-- Changes of shape memory properties in CuAlNi single crystals subjected to isothermal treatments
-- Uso del GPS para el estudio del movimiento en Física
-- Effects on the martensitic transformations and the microstructure of CuAlNi single crystals after ageing at 473 K
-- Data science
-- Physics education
-- Labor unions negotiations
-- Salary analysis
-- Asesor político educativo
+- Científico de datos con experiencia en física y educación
+- Python, Machine Learning, Data Analytics
+- SQL, Git, Docencia Comunicación, Excel, Javascript, html, CSS, Arduino
+- Liderazgo Gestión de proyectos
 
 Experience:
-- Ayudante de 1ª de la materia Física e Introducción a la Biofísica de UBA XXI, Ministerio de Educación de la Nación (2022-2024)
-- Asesor de la Secretaría General del Consejo Federal de Educación
-- Escuela de Maestros Capacitador docente, Ciudad Autónoma de Buenos Aires (February 2022 - June 2022)
-- Capacitador docente del área de Ciencias Naturales de la escuela primaria, Escuela de Maestros Capacitador docente (February 2022 - June 2022)
-- Bachillerato Popular de Jóvenes y Adultos, IMPA Coordinador de educación, CABA, Argentina (October 2020 - April 2022)
-- Asistente pedagógico y docente de física, Colegio Agustiniano Docente de Sistemas Tecnológicos (March 2017 - July 2018)
-- Ayudante de segunda del Departamento de Física, Facultad de Ciencias Exactas y Naturales, UBA (March 2016 - August 2017)
-- Técnico, Grupo de investigación orientado al estudio de propiedades termomecánicas en CuAlNi (October 2009 - March 2016)
+Teaching/Research positions:
++ 2020 - Presente
+Apr. 2024 - Presente
+Ago. 2023 - Dic. 2023
++54911319 49 050
+Física - Universidad de Buenos Aires
+Diplomatura en IA - Instituto Humai
+Educador y ex asesor gubernamental en transición a la ciencia de datos.
+- Física - Universidad de Buenos Aires
+- Diplomatura en IA - Instituto Humai
+
+Non-teaching roles:
++ 2019 (2009-2019)
+Data Analytics - Machine Learning - Python - SQL - Git - Docencia Comunicación - Excel - Javascript - html - CSS - Arduino - Liderazgo Gestión de proyectos
 
 Education:
-- Bachillerato Popular de Jóvenes y Adultos, IMPA Coordinador de educación, CABA, Argentina
-- Universidad Pedagógica Nacional (UNIPE)
-- Escuela Técnica Nº 28 República Francesa
-
--------------------
-
-Juan Ignacio Beiroa
-- Skills: 
-  - Data Science
-  - Artificial Intelligence
-  - Machine Learning
-  - Python programming
-  - SQL
-  - Git
-  - Excel
-  - Javascript
-  - HTML
-  - CSS
-  - Arduino
-  - Leadership
-  - Project Management
-
-Experience:
-  - Professor/Researcher at the Universidad de Buenos Aires, since 2020
-    + Teaching position: Física
-    + Research positions: Científico de datos con experiencia en física y educación (2016-2017)
-      + Education: Ciencias Sociales, Economía (Universidad de Buenos Aires); Diplomatura en IA - Instituto Humai (2019)
-
-  - Educator/Asesor Gubernamental in transition to the science of data
-    + Experience: Educational roles and leadership positions
-
-  - Data Analyst at Machine Learning Python - SQL - Git - Docencia Comunicación - Excel - Javascript - html - CSS - Arduino - Liderazgo Gestión de proyectos (2009-2019)
-    + Education: Not mentioned
+- Universidad de Buenos Aires
+  - Diplomatura en IA (Instituto Humai, 2020)
 
 -------------------
 
