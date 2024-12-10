@@ -1,11 +1,86 @@
-This candidate's résumé highlights their expertise in data analysis, machine learning, and project management. With a background in physics and education, they have developed a unique blend of technical and analytical skills that can be applied to various roles. The résumé showcases their experience in developing data-driven solutions for policy impact, conducting statistical analyses, and leading team projects. They also demonstrate their ability to work effectively with stakeholders, including teachers and policymakers. Furthermore, their strong communication skills are evident through the use of social media platforms and their involvement in educational initiatives. Overall, this candidate presents a versatile skill set that can be valuable in various roles within education and research.El presente documento presenta una investigación sobre la enseñanza de ciencias físicas en Argentina. Se destacan algunos de los temas abordados, como la popularización de las ciencias, el uso del GPS en la educación física y la creación de contenidos digitales para docentes.
+Name: Juan Ignacio Beiroa
+Skills:
+- Technical: Git, Excel, Python, Javascript, HTML, CSS
+- Non-Technical: Data Analytics & Machine Learning, Physics, Academic Writing, Research Methodology
+Experience:
+- Teaching/Research positions: Introductory Physics for Biologists, Geologists and Chemists (2016-2017), Taught Physics and Introduction to Biophysics subject for Medical and Veterinary Careers (Current)
+- Non-teaching roles: Coordinator of the Science and Technology Department at Bayard School, Led data collection and fiscal analysis for union negotiations
+Education:
+- Degrees obtained: University of Buenos Aires, Pedagogical University; Diploma in AI - Humai Institute
+  Courses taken: Introduction to AI, Spec. in Education Policies
 
-Se mencionan también algunas actividades y eventos que se realizaron durante el período estudiado, como seminarios, talleres y cursos. Además, se detallan algunos de los temas más destacados de las conferencias y reuniones académicas, como la divulgación de ciencia y la popularización de las disciplinas.
+-------------------
 
-En resumen, el presente documento ofrece una visión general de la enseñanza de ciencias físicas en Argentina durante un período específico, reflejando los esfuerzos y dedicaciones de profesores, docentes e instituciones para promover el aprendizaje científico a través del diálogo y la colaboración.The provided résumé highlights Juan Beiroa's diverse experience and skills in education, research, and data science. He holds a degree in Physics from the University of Buenos Aires and has taught at several institutions, including Colegio Bayard Coordinador de Ciencias Exactas y Tecnología. As an advisor to a high government official, he has contributed to salary negotiations with labor unions.
+**Revisión de RÉSUMÉ**
 
-Beiroa's technical skills include proficiency in machine learning, data analysis, and programming languages such as Python. He has also developed expertise in statistical analysis, data visualization, and predictive modeling. In his professional experience, he has worked as a researcher, consultant, and instructor, with roles at various institutions. His résumé showcases his ability to communicate complex scientific concepts effectively, both academically and professionally. Overall, the résumé demonstrates Beiroa's versatility and expertise in multiple fields, making him an attractive candidate for various positions in education, research, and industry.Juan Ignacio Beiroa es un científico de datos con experiencia en física y educación. Su currículum resume su trayectoria profesional, desde enseñanzas técnicas hasta responsabilidades administrativas. A pesar de no haber trabajado directamente como profesor, ha desarrollado habilidades analíticas y de aprendizaje automático mediante proyectos en línea.
+* Informática Educativa: se enfoca en la tecnología educativa y su implementación en el aula escolar
+* Didáctica Específica y Prácticas de la Enseñanza II del Profesorado de Física de la FCEyN-UBA: se desarrollan unidades didácticas específicas para esta materia
+* Unidad Didáctica diseñada en la Matería Didáctica General del Profesorado de Física de la FECyN: se presenta como una unidad de aprendizaje en línea
+* Reunión Nacional de Enseñanza de la Física XXI (Oct. 2019): se presentó el proyecto "Anales de experiencias docentes REFXXI"
+* Desarrollo de contenidos digitales gratuitos para docentes: se publican regularmente en Instagram @didacTIC.ar
+* Diseño y dictado de talleres y cursos sobre tecnología educativa: participación del equipo del curso
+* Curso de primeros auxilios y RCP DEA (May. 2019): se dicta el curso en el Centro Médico Víctor Baltao
 
-En la Universidad de Buenos Aires, ha obtenido un título en física con especialización en política educativa. También ha cursado estudios de ciencia y tecnología en el Instituto Humai. Años más tarde, ha trabajado como soporte técnico en electrónica e informática para la investigación en aleaciones con memoria de forma CuAlNi.
+-------------------
 
-Beiroa ha participado en varios proyectos de investigación, incluyendo el análisis salarial provincial y el desarrollo de modelos de aprendizaje automático. Actualmente es Coordinador del Departamento de Ciencia y Tecnología, superviso a un equipo de docentes y es responsable del rediseño e implementación de los planes de estudio del área. Su habilidad para trabajar en equipo y su experiencia en la investigación teórica lo convierten en un candidato prometedor para un rol en la investigación en ciencia y tecnología, educación o evaluación del rendimiento escolar.
+Name: Jibeiroa
+Skills:
+- Illustrator CC: Comunicación Gráfica
+- Fundamentos de Programación
+- The Ultimate MySQL Bootcamp: Go from SQL Beginner to Expert
+- Changes of shape memory properties in CuAlNi single crystals subjected to isothermal treatments
+- Uso del GPS para el estudio del movimiento en Física
+- Effects on the martensitic transformations and the microstructure of CuAlNi single crystals after ageing at 473 K
+- Data science
+- Physics education
+- Labor unions negotiations
+- Salary analysis
+- Asesor político educativo
+
+Experience:
+- Ayudante de 1ª de la materia Física e Introducción a la Biofísica de UBA XXI, Ministerio de Educación de la Nación (2022-2024)
+- Asesor de la Secretaría General del Consejo Federal de Educación
+- Escuela de Maestros Capacitador docente, Ciudad Autónoma de Buenos Aires (February 2022 - June 2022)
+- Capacitador docente del área de Ciencias Naturales de la escuela primaria, Escuela de Maestros Capacitador docente (February 2022 - June 2022)
+- Bachillerato Popular de Jóvenes y Adultos, IMPA Coordinador de educación, CABA, Argentina (October 2020 - April 2022)
+- Asistente pedagógico y docente de física, Colegio Agustiniano Docente de Sistemas Tecnológicos (March 2017 - July 2018)
+- Ayudante de segunda del Departamento de Física, Facultad de Ciencias Exactas y Naturales, UBA (March 2016 - August 2017)
+- Técnico, Grupo de investigación orientado al estudio de propiedades termomecánicas en CuAlNi (October 2009 - March 2016)
+
+Education:
+- Bachillerato Popular de Jóvenes y Adultos, IMPA Coordinador de educación, CABA, Argentina
+- Universidad Pedagógica Nacional (UNIPE)
+- Escuela Técnica Nº 28 República Francesa
+
+-------------------
+
+Juan Ignacio Beiroa
+- Skills: 
+  - Data Science
+  - Artificial Intelligence
+  - Machine Learning
+  - Python programming
+  - SQL
+  - Git
+  - Excel
+  - Javascript
+  - HTML
+  - CSS
+  - Arduino
+  - Leadership
+  - Project Management
+
+Experience:
+  - Professor/Researcher at the Universidad de Buenos Aires, since 2020
+    + Teaching position: Física
+    + Research positions: Científico de datos con experiencia en física y educación (2016-2017)
+      + Education: Ciencias Sociales, Economía (Universidad de Buenos Aires); Diplomatura en IA - Instituto Humai (2019)
+
+  - Educator/Asesor Gubernamental in transition to the science of data
+    + Experience: Educational roles and leadership positions
+
+  - Data Analyst at Machine Learning Python - SQL - Git - Docencia Comunicación - Excel - Javascript - html - CSS - Arduino - Liderazgo Gestión de proyectos (2009-2019)
+    + Education: Not mentioned
+
+-------------------
+
