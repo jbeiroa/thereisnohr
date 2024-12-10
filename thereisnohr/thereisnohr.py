@@ -1,5 +1,6 @@
 import os
 from getter import Getter
+from handler import Handler
 from profiler import Profiler
 
 def get_cvs_path():
@@ -14,9 +15,12 @@ if __name__ == '__main__':
         cv = getter.get_next()
         if cv is None:
             break
-        profiler = Profiler(cv)
+        handler = Handler(cv)
+        data = handler.clean_resume_blocks()
+        profiler = Profiler(data[0])
         summary = profiler.summarize()
         with open(os.path.join(cvs_path, 'summary.txt'), 'a') as out:
             out.write(summary)
+            out.write('\n\n-------------------\n\n')
         print(summary)
         print('\n\n-------------------\n\n')

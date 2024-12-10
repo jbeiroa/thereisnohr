@@ -1,11 +1,42 @@
 import os
 from dataclasses import dataclass, field
 from typing import List, Optional
-import pymupdf
 import pymupdf4llm
 
 @dataclass
 class Getter:
+    """
+    A class for processing PDF files in a specified directory and converting them to markdown format.
+
+    Attributes
+    ----------
+    directory : str
+        Path to the directory containing PDF files.
+    save_to_file : bool, optional
+        If True, saves the converted markdown to a file. Defaults to False.
+    current_index : int
+        Tracks the index of the current file being processed. Initialized to 0.
+    files : List[str]
+        List of PDF files in the directory. Initialized during object creation.
+    markdown : Optional[str]
+        Holds the markdown representation of the last processed file. Defaults to None.
+
+    Methods
+    -------
+    __post_init__():
+        Initializes the list of PDF files in the directory. Raises FileNotFoundError if no PDF files are found.
+    
+    get_cv(path: str) -> str:
+        Converts a PDF file at the specified path to markdown format.
+    
+    get_next() -> Optional[str]:
+        Processes the next PDF file in the directory and converts it to markdown format.
+        If `save_to_file` is True, saves the markdown to a file. Returns the markdown or None if no files remain.
+    
+    reset():
+        Resets the processing index to the beginning and clears the last processed markdown.
+    """
+
     directory: str
     save_to_file: bool = False
     current_index: int = field(init=False, default=0)
@@ -13,29 +44,47 @@ class Getter:
     markdown: Optional[str] = field(init=False, default=None)
 
     def __post_init__(self):
-        # List all PDF files in the directory
+        """
+        Initializes the list of PDF files in the directory. Raises a FileNotFoundError
+        if no PDF files are found in the specified directory.
+
+        Raises
+        ------
+        FileNotFoundError
+            If no PDF files are found in the specified directory.
+        """
         self.files = [file for file in os.listdir(self.directory) if file.endswith('.pdf')]
         if not self.files:
             raise FileNotFoundError("No PDF files found in the specified directory.")
 
     def get_cv(self, path: str) -> str:
-        """Gets one résumé from a given path.
-
-        Args:
-            path (str): path to the résumé file.
-
-        Returns:
-            str: résumé in markdown format.
         """
-        doc = pymupdf.open(path)
-        self.markdown = pymupdf4llm.to_markdown(doc, show_progress=False)
+        Converts a PDF file at the specified path to markdown format.
 
+        Parameters
+        ----------
+        path : str
+            Path to the PDF file to be converted.
+
+        Returns
+        -------
+        str
+            The markdown representation of the PDF file.
+        """
+        self.markdown = pymupdf4llm.to_markdown(path, show_progress=False)
         return self.markdown
     
     def get_next(self) -> Optional[str]:
-        """Processes the next PDF file in the directory."""
+        """
+        Processes the next PDF file in the directory and converts it to markdown format.
+        If `save_to_file` is True, saves the markdown to a file.
+
+        Returns
+        -------
+        Optional[str]
+            The markdown representation of the next PDF file, or None if no files remain.
+        """
         if self.current_index >= len(self.files):
-            print("No more files to process.")
             return None
         
         current_file_path = os.path.join(self.directory, self.files[self.current_index])
@@ -51,6 +100,12 @@ class Getter:
         return self.markdown
 
     def reset(self):
-        """Resets the processing index to the beginning."""
+        """
+        Resets the processing index to the beginning and clears the last processed markdown.
+
+        Returns
+        -------
+        None
+        """
         self.current_index = 0
         self.markdown = None

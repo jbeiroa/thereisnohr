@@ -1,0 +1,15 @@
+Physics Teacher
+We are seeking a teacher with a strong theoretical background in Physics and experience managing educational laboratories. The ideal candidate will be able to design and conduct laboratory practices, including developing equipment and materials to enrich students' learning. Experience in organizing practical experiments to promote a deep understanding of theoretical concepts will be valued.
+Requirements:
+- Teaching degree in Physics or related fields.
+- Previous experience managing and organizing school laboratories.
+- Ability to develop laboratory practices and collaborate on creating new resources.
+
+-------------------
+
+Computer Science Teacher
+We are looking for a teacher with strong knowledge of computer science, ideally with experience in Python and SQL databases. The candidate must be able to prepare students for effective use of these languages and databases, as well as encourage participation in projects that integrate programming with other curricular areas.
+Requirements:
+- Teaching degree in Computer Science, programming, or related fields.
+- Advanced knowledge of Python and SQL.
+- Previous experience teaching or working on projects related to databases and programming languages.
