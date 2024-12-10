@@ -2,6 +2,7 @@ import os
 from getter import Getter
 from handler import Handler
 from profiler import Profiler
+from selector import Candidate_Selector
 
 def get_cvs_path():
     repo_path = os.path.dirname(os.getcwd())
@@ -24,3 +25,16 @@ if __name__ == '__main__':
             out.write('\n\n-------------------\n\n')
         print(summary)
         print('\n\n-------------------\n\n')
+    
+    summaries_path = os.path.join(cvs_path, 'summary.txt')
+    descriptions_path = os.path.join(cvs_path, 'job_descriptions.txt')
+    with open(summaries_path, 'r') as file:
+        txt = file.read()
+        summaries = txt.split('\n\n-------------------\n\n')
+    summaries.pop(-1)
+
+    with open(descriptions_path, 'r') as file:
+        txt = file.read()
+        job_descriptions = txt.split('\n\n-------------------\n\n')
+    selector = Candidate_Selector(summaries, job_descriptions[1])
+    selector.print_top_candidates(k=3)    

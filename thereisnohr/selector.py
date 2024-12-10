@@ -1,5 +1,3 @@
-import os
-from itertools import product
 from dataclasses import dataclass, field
 from sentence_transformers import SentenceTransformer, util
 from typing import List
