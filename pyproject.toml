@@ -13,6 +13,10 @@ pymupdf = "^1.24.14"
 pandas = "^2.2.3"
 pymupdf4llm = "^0.0.17"
 sentence-transformers = "^3.3.1"
+mlx-lm = "^0.20.4"
+kagglehub = "^0.3.5"
+matplotlib = "^3.10.0"
+datasets = "^3.2.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.1.1"
