@@ -10,6 +10,6 @@ adapters
 
 mlx_model
 
-data
+old_ft_data
 
 fused_model
