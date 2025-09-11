@@ -15,12 +15,12 @@ old_ft_data
 fused_model
 
 # Ignore model weights
-*.safetensors
-*.bin
-*.pt
-*.ckpt
+**.safetensors
+**.bin
+**.pt
+**.ckpt
 
 # Ignore Hugging Face cache
-/cache/
-/huggingface/
-/transformers_cache/
+**/cache/
+**/huggingface/
+**/transformers_cache/
