@@ -2,7 +2,7 @@
 
 `thereisnohr` is being rebuilt as a small, flexible, provider-agnostic Applicant Tracking System (ATS).
 
-This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), and starts **Stage 2** (provider-agnostic LLM layer).
+This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), starts **Stage 2** (provider-agnostic LLM layer), and begins **Stage 3** ingestion pipeline work.
 
 ## Why this reengineering exists
 
@@ -37,6 +37,8 @@ Implemented now:
 - model alias registry loaded from `config/model_aliases.yaml`,
 - schema-validated structured generation with retry handling,
 - alias-based embedding generation through LiteLLM.
+- Metaflow orchestration flow for PDF resume ingestion into Postgres.
+- parser and ingestion services that reuse legacy extraction/cleaning ideas in the new architecture.
 
 Not implemented yet (planned in Stage 2+):
 
@@ -55,6 +57,7 @@ Not implemented yet (planned in Stage 2+):
 - `src/ranking/`: ranking service boundary.
 - `src/storage/`: SQLAlchemy engine, models, repositories.
 - `src/llm/`: provider-agnostic client interface, alias registry, LiteLLM provider.
+- `src/ingest/`: parser, ingestion service, and Metaflow PDF ingestion flow.
 - `alembic/`: migration runtime and revision scripts.
 - `config/model_aliases.yaml`: model routing aliases and default provider params.
 - `tests/`: foundational test suite for Stage 0/1.
@@ -90,6 +93,12 @@ uv run uvicorn src.api.app:app --reload
 
 ```bash
 uv run alembic upgrade head
+
+6. Run Stage 3 ingestion flow:
+
+```bash
+uv run python src/ingest/pdf_ingestion_flow.py run --input-dir data --pattern '*.pdf'
+```
 ```
 
 ## Configuration
@@ -167,6 +176,7 @@ print(len(vectors))
 - `docs/architecture.md`: detailed architecture and design tradeoffs.
 - `docs/stage-0-1-guide.md`: deep usage walkthrough and examples for current code.
 - `docs/stage-2-llm.md`: Stage 2 LiteLLM layer, alias routing, and structured output usage.
+- `docs/stage-3-ingestion.md`: legacy-reuse analysis and Metaflow PDF ingestion pipeline details.
 
 ## Legacy code note
 

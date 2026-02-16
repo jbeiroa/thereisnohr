@@ -35,5 +35,13 @@ def rank(job_id: int, top_k: int = 5) -> None:
     typer.echo(f"Ranking placeholder for job_id={job_id}, top_k={top_k}")
 
 
+@app.command("ingest-flow-help")
+def ingest_flow_help() -> None:
+    """Show how to run the Metaflow PDF ingestion pipeline."""
+    typer.echo(
+        "Run ingestion flow with: uv run python src/ingest/pdf_ingestion_flow.py run --input-dir data --pattern '*.pdf'"
+    )
+
+
 if __name__ == "__main__":
     app()
