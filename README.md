@@ -2,7 +2,7 @@
 
 `thereisnohr` is being rebuilt as a small, flexible, provider-agnostic Applicant Tracking System (ATS).
 
-This branch implements **Stage 0** (foundation/scaffolding) and **Stage 1** (durable ATS schema).
+This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), and starts **Stage 2** (provider-agnostic LLM layer).
 
 ## Why this reengineering exists
 
@@ -33,10 +33,13 @@ Implemented now:
 - repository classes for initial DB access patterns,
 - uv-based dependency and lockfile workflow,
 - baseline tests for config, schema registration, and CLI wiring.
+- provider-agnostic LLM abstraction (`LLMClient`) with a LiteLLM-backed implementation,
+- model alias registry loaded from `config/model_aliases.yaml`,
+- schema-validated structured generation with retry handling,
+- alias-based embedding generation through LiteLLM.
 
 Not implemented yet (planned in Stage 2+):
 
-- provider-agnostic LLM orchestration via LiteLLM,
 - real resume parsing and section extraction pipeline,
 - retrieval/ranking logic and score explanations,
 - production API endpoints beyond healthcheck.
@@ -51,7 +54,9 @@ Not implemented yet (planned in Stage 2+):
 - `src/retrieval/`: retrieval service boundary.
 - `src/ranking/`: ranking service boundary.
 - `src/storage/`: SQLAlchemy engine, models, repositories.
+- `src/llm/`: provider-agnostic client interface, alias registry, LiteLLM provider.
 - `alembic/`: migration runtime and revision scripts.
+- `config/model_aliases.yaml`: model routing aliases and default provider params.
 - `tests/`: foundational test suite for Stage 0/1.
 - `docs/`: architecture and usage documentation.
 
@@ -114,6 +119,41 @@ uv run ats rank 123 --top-k 5
 
 These are placeholders by design; they define stable interfaces that Stage 2+ will implement.
 
+## Stage 2 usage (LLM abstraction)
+
+Example: build the default client and run structured generation:
+
+```python
+from pydantic import BaseModel
+
+from src.llm.factory import build_default_llm_client
+
+
+class CandidateSummary(BaseModel):
+    name: str
+    skills: list[str]
+
+
+client = build_default_llm_client()
+result = client.generate_structured(
+    prompt="Summarize candidate in JSON with fields: name, skills",
+    schema=CandidateSummary,
+    model_alias="summarizer_default",
+)
+print(result.model_dump())
+```
+
+Example: embeddings through alias routing:
+
+```python
+client = build_default_llm_client()
+vectors = client.embed(
+    texts=["Physics teacher with 5 years experience", "Python and SQL instructor"],
+    embedding_model_alias="embedding_default",
+)
+print(len(vectors))
+```
+
 ## Design reasoning (short)
 
 - **Flat `src/` layout**: keeps imports direct and avoids nested package overhead while the architecture is evolving quickly.
@@ -126,6 +166,7 @@ These are placeholders by design; they define stable interfaces that Stage 2+ wi
 
 - `docs/architecture.md`: detailed architecture and design tradeoffs.
 - `docs/stage-0-1-guide.md`: deep usage walkthrough and examples for current code.
+- `docs/stage-2-llm.md`: Stage 2 LiteLLM layer, alias routing, and structured output usage.
 
 ## Legacy code note
 

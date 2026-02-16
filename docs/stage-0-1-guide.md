@@ -184,7 +184,7 @@ Stores role definition and structured requirement payloads used in matching.
 ## 9) Known limitations in Stage 0/1
 
 - No production ingestion/extraction implementation yet.
-- No provider-agnostic LLM adapter yet (planned Stage 2 with LiteLLM).
+- Stage 2 LiteLLM adapter exists, but it is not wired into ingestion/extraction/ranking flows yet.
 - No retrieval/ranking scoring logic yet.
 - No end-user API surface yet beyond healthcheck.
 

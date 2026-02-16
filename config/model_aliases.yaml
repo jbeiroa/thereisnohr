@@ -1,0 +1,21 @@
+summarizer_default:
+  model: openai/gpt-4o-mini
+  params:
+    temperature: 0.2
+    max_tokens: 900
+
+extractor_default:
+  model: openai/gpt-4o-mini
+  params:
+    temperature: 0.0
+    max_tokens: 1200
+
+explainer_default:
+  model: openai/gpt-4o-mini
+  params:
+    temperature: 0.1
+    max_tokens: 1200
+
+embedding_default:
+  model: text-embedding-3-small
+  params: {}

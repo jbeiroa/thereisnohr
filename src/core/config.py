@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     data_dir: Path = Path("./data")
+    model_aliases_path: Path = Path("./config/model_aliases.yaml")
 
     database_url: str = Field(
         default="postgresql+psycopg://postgres:postgres@localhost:5432/thereisnohr"
@@ -18,6 +19,11 @@ class Settings(BaseSettings):
 
     embedding_model_alias: str = "embedding_default"
     summarizer_model_alias: str = "summarizer_default"
+    extractor_model_alias: str = "extractor_default"
+    explainer_model_alias: str = "explainer_default"
+
+    llm_timeout_seconds: float = 30.0
+    llm_max_retries: int = 2
 
     model_config = SettingsConfigDict(
         env_file=".env",
