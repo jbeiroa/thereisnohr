@@ -1,30 +1,65 @@
-[tool.poetry]
+[project]
 name = "thereisnohr"
 version = "0.1.0"
-description = "A simple AI tool to automate resume selection,"
-authors = ["Juan Beiroa <jbeiroa@gmail.com>"]
-license = "CC BY-NC 4.0"
+description = "A small, flexible ATS for resume ingestion and candidate matching"
 readme = "README.md"
+requires-python = ">=3.12"
+license = "CC-BY-NC-4.0"
+authors = [
+  { name = "Juan Beiroa", email = "jbeiroa@gmail.com" }
+]
+dependencies = [
+  "alembic>=1.14.1",
+  "datasets>=3.2.0",
+  "fastapi>=0.116.0",
+  "kagglehub>=0.3.5",
+  "matplotlib>=3.10.0",
+  "mlx-lm>=0.20.4",
+  "ollama>=0.4.2",
+  "openai>=1.76.0",
+  "pandas>=2.2.3",
+  "pgvector>=0.4.1",
+  "psycopg[binary]>=3.2.9",
+  "pydantic>=2.10.6",
+  "pydantic-settings>=2.7.1",
+  "pymupdf>=1.24.14",
+  "pymupdf4llm>=0.0.17",
+  "sentence-transformers>=3.3.1",
+  "seaborn>=0.13.2",
+  "sqlalchemy>=2.0.38",
+  "tiktoken>=0.9.0",
+  "tqdm>=4.67.1",
+  "typer>=0.15.1",
+  "uvicorn>=0.35.0"
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-ollama = "^0.4.2"
-pymupdf = "^1.24.14"
-pandas = "^2.2.3"
-pymupdf4llm = "^0.0.17"
-sentence-transformers = "^3.3.1"
-mlx-lm = "^0.20.4"
-kagglehub = "^0.3.5"
-matplotlib = "^3.10.0"
-datasets = "^3.2.0"
-seaborn = "^0.13.2"
-openai = "^1.76.0"
-tiktoken = "^0.9.0"
-tqdm = "^4.67.1"
+[project.optional-dependencies]
+notebooks = [
+  "jupyter>=1.1.1"
+]
 
-[tool.poetry.group.dev.dependencies]
-jupyter = "^1.1.1"
+[dependency-groups]
+dev = [
+  "pytest>=8.3.4",
+  "pytest-cov>=6.0.0",
+  "ruff>=0.9.7",
+  "mypy>=1.15.0"
+]
+
+[project.scripts]
+ats = "src.cli:app"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

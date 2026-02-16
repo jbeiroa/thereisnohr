@@ -1,14 +1,35 @@
 # thereisnohr
-There is no HR at my school, so I need a tool to automate resume selection.
 
-# License  
-This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).  
-You are free to:  
-- Share: Copy and redistribute the material in any medium or format.  
-- Adapt: Remix, transform, and build upon the material.  
+A small, flexible ATS to ingest resumes, extract candidate signals, and rank applicants against job descriptions.
 
-**Under the following terms**:  
-- Attribution: You must give appropriate credit, provide a link to the license, and indicate if changes were made.  
-- NonCommercial: You may not use the material for commercial purposes.  
+## Current scope
 
-Full license text: [https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/)
+This branch introduces Stage 0 and Stage 1 of the reengineering plan:
+- Stage 0: project scaffolding, typed config, CLI/API placeholders, and test baseline.
+- Stage 1: durable ATS schema with PostgreSQL + pgvector and Alembic migrations.
+
+## Development with uv
+
+1. Install dependencies:
+
+```bash
+uv sync
+```
+
+2. Run tests:
+
+```bash
+uv run pytest -q
+```
+
+3. Run CLI:
+
+```bash
+uv run ats --help
+```
+
+4. Apply migrations:
+
+```bash
+uv run alembic upgrade head
+```
