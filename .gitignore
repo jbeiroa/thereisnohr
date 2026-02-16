@@ -26,3 +26,5 @@ fused_model
 **/cache/
 **/huggingface/
 **/transformers_cache/
+
+.plans
