@@ -16,6 +16,8 @@ old_ft_data
 
 fused_model
 
+finetune_data/
+
 # Ignore model weights
 **.safetensors
 **.bin
