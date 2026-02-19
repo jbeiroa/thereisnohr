@@ -1,14 +1,183 @@
 # thereisnohr
-There is no HR at my school, so I need a tool to automate resume selection.
 
-# License  
-This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).  
-You are free to:  
-- Share: Copy and redistribute the material in any medium or format.  
-- Adapt: Remix, transform, and build upon the material.  
+`thereisnohr` is being rebuilt as a small, flexible, provider-agnostic Applicant Tracking System (ATS).
 
-**Under the following terms**:  
-- Attribution: You must give appropriate credit, provide a link to the license, and indicate if changes were made.  
-- NonCommercial: You may not use the material for commercial purposes.  
+This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), starts **Stage 2** (provider-agnostic LLM layer), and begins **Stage 3** ingestion pipeline work.
 
-Full license text: [https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/)
+## Why this reengineering exists
+
+The original project goal was resume selection automation for a specific school context. The new direction broadens scope to a general ATS that can:
+
+- ingest resumes and job descriptions,
+- extract candidate signals,
+- index candidates for semantic retrieval,
+- rank top-k applicants,
+- produce transparent explanations for hiring decisions.
+
+The first two stages intentionally focus on reliability and architecture, not model quality yet:
+
+- Stage 0 provides a clean runtime shape and testable boundaries.
+- Stage 1 provides data durability and query foundations (Postgres + pgvector).
+
+## Current capabilities (Stage 0/1)
+
+Implemented now:
+
+- flat `src/` code layout with explicit module boundaries,
+- typed environment configuration (`pydantic-settings`),
+- structured logging with per-run IDs,
+- CLI skeleton (`ats ingest`, `ats index`, `ats rank`),
+- FastAPI app skeleton (`/health`),
+- SQLAlchemy models for ATS entities,
+- Alembic migrations and pgvector extension setup,
+- repository classes for initial DB access patterns,
+- uv-based dependency and lockfile workflow,
+- baseline tests for config, schema registration, and CLI wiring.
+- provider-agnostic LLM abstraction (`LLMClient`) with a LiteLLM-backed implementation,
+- model alias registry loaded from `config/model_aliases.yaml`,
+- schema-validated structured generation with retry handling,
+- alias-based embedding generation through LiteLLM.
+- Metaflow orchestration flow for PDF resume ingestion into Postgres.
+- parser and ingestion services that reuse legacy extraction/cleaning ideas in the new architecture.
+
+Not implemented yet (planned in Stage 2+):
+
+- real resume parsing and section extraction pipeline,
+- retrieval/ranking logic and score explanations,
+- production API endpoints beyond healthcheck.
+
+## Repository map
+
+- `src/core/`: runtime settings and logging.
+- `src/cli.py`: CLI entrypoint and commands.
+- `src/api/`: FastAPI app.
+- `src/ingest/`: ingestion service boundary.
+- `src/extract/`: extraction service boundary.
+- `src/retrieval/`: retrieval service boundary.
+- `src/ranking/`: ranking service boundary.
+- `src/storage/`: SQLAlchemy engine, models, repositories.
+- `src/llm/`: provider-agnostic client interface, alias registry, LiteLLM provider.
+- `src/ingest/`: parser, ingestion service, and Metaflow PDF ingestion flow.
+- `alembic/`: migration runtime and revision scripts.
+- `config/model_aliases.yaml`: model routing aliases and default provider params.
+- `tests/`: foundational test suite for Stage 0/1.
+- `docs/`: architecture and usage documentation.
+
+## Quickstart (uv)
+
+1. Sync dependencies and create virtual environment:
+
+```bash
+uv sync --all-extras --dev
+```
+
+2. Run tests:
+
+```bash
+uv run pytest -q
+```
+
+3. Inspect CLI commands:
+
+```bash
+uv run ats --help
+```
+
+4. Run API locally:
+
+```bash
+uv run uvicorn src.api.app:app --reload
+```
+
+5. Run migrations:
+
+```bash
+uv run alembic upgrade head
+
+6. Run Stage 3 ingestion flow:
+
+```bash
+uv run python src/ingest/pdf_ingestion_flow.py run --input-dir data --pattern '*.pdf'
+```
+```
+
+## Configuration
+
+Copy `.env.example` to `.env` and adjust values:
+
+```env
+APP_NAME=thereisnohr
+ENVIRONMENT=dev
+LOG_LEVEL=INFO
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/thereisnohr
+EMBEDDING_MODEL_ALIAS=embedding_default
+SUMMARIZER_MODEL_ALIAS=summarizer_default
+```
+
+Configuration is loaded by `src/core/config.py` with typed defaults and env overrides.
+
+## Intended usage today
+
+Current commands are scaffolding-oriented and useful for validating wiring, environment, and developer setup:
+
+```bash
+uv run ats ingest /path/to/resume.txt
+uv run ats index
+uv run ats rank 123 --top-k 5
+```
+
+These are placeholders by design; they define stable interfaces that Stage 2+ will implement.
+
+## Stage 2 usage (LLM abstraction)
+
+Example: build the default client and run structured generation:
+
+```python
+from pydantic import BaseModel
+
+from src.llm.factory import build_default_llm_client
+
+
+class CandidateSummary(BaseModel):
+    name: str
+    skills: list[str]
+
+
+client = build_default_llm_client()
+result = client.generate_structured(
+    prompt="Summarize candidate in JSON with fields: name, skills",
+    schema=CandidateSummary,
+    model_alias="summarizer_default",
+)
+print(result.model_dump())
+```
+
+Example: embeddings through alias routing:
+
+```python
+client = build_default_llm_client()
+vectors = client.embed(
+    texts=["Physics teacher with 5 years experience", "Python and SQL instructor"],
+    embedding_model_alias="embedding_default",
+)
+print(len(vectors))
+```
+
+## Design reasoning (short)
+
+- **Flat `src/` layout**: keeps imports direct and avoids nested package overhead while the architecture is evolving quickly.
+- **Postgres + pgvector**: one durable store for structured metadata + vectors, minimizing operational complexity.
+- **Alembic from day one**: migration discipline early avoids schema drift later.
+- **Service boundaries now, logic later**: isolates future ATS behaviors behind stable module contracts.
+- **uv over Poetry**: faster lock/sync workflow and simpler toolchain.
+
+## Additional docs
+
+- `docs/architecture.md`: detailed architecture and design tradeoffs.
+- `docs/stage-0-1-guide.md`: deep usage walkthrough and examples for current code.
+- `docs/stage-2-llm.md`: Stage 2 LiteLLM layer, alias routing, and structured output usage.
+- `docs/stage-3-ingestion.md`: legacy-reuse analysis and Metaflow PDF ingestion pipeline details.
+
+## Legacy code note
+
+The older implementation still exists under `thereisnohr/` (legacy pipeline modules) and is not yet migrated into the new `src/` architecture. Stages 2+ will progressively replace legacy paths with new service flows.
