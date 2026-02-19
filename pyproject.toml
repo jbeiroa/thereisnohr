@@ -33,7 +33,10 @@ dependencies = [
   "tiktoken>=0.9.0",
   "tqdm>=4.67.1",
   "typer>=0.15.1",
-  "uvicorn>=0.35.0"
+  "uvicorn>=0.35.0",
+  "jupyter>=1.1.1",
+  "pymupdf-layout>=1.27.1",
+  "ipython>=9.10.0",
 ]
 
 [project.optional-dependencies]

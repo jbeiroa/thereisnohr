@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import pymupdf.layout
 import pymupdf4llm
 
 from src.ingest.entities import ParsedResume
@@ -25,15 +26,18 @@ class PDFResumeParser:
             raw_text=markdown,
             clean_text=clean_text,
             links=links,
-            sections=sections,
+            section_items=sections,
+            identity_signals=None,
             language=language,
             parser_version=self.parser_version,
+            content_hash=None
         )
 
     def extract_markdown(self, path: Path) -> str:
         if not path.exists():
             raise FileNotFoundError(f"Resume not found: {path}")
-        return pymupdf4llm.to_markdown(str(path), show_progress=False)
+        doc = pymupdf.open(path)
+        return pymupdf4llm.to_markdown(doc, show_progress=False)
 
     # Adapted from legacy thereisnohr/data/handler.py with less destructive filtering.
     def clean_resume_blocks(self, text: str) -> tuple[str, list[str]]:
@@ -101,8 +105,8 @@ class PDFResumeParser:
 
     def detect_language(self, text: str) -> str:
         lowered = text.lower()
-        english_markers = ["experience", "education", "skills", "teacher", "university"]
-        spanish_markers = ["experiencia", "educacion", "habilidades", "docente", "universidad"]
+        english_markers = ["experience", "education", "skills", "university"]
+        spanish_markers = ["experiencia", "educación", "habilidades", "universidad"]
 
         english_score = sum(1 for marker in english_markers if marker in lowered)
         spanish_score = sum(1 for marker in spanish_markers if marker in lowered)
