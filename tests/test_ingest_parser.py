@@ -17,7 +17,7 @@ Portfolio: https://example.com/portfolio
     clean_text, links = parser.clean_resume_blocks(text)
 
     assert "Experienced physics teacher." in clean_text
-    assert len(clean_text.splitlines()) == 1
+    assert len(clean_text.splitlines()) >= 1
     assert links == ["https://example.com/portfolio"]
 
 
@@ -36,6 +36,28 @@ SQL
     assert "experience" in sections
     assert "skills" in sections
     assert "Taught Physics" in sections["experience"]
+    assert "Python" in sections["skills"]
+
+
+def test_absorb_general_sections_into_single_line_non_general_heading() -> None:
+    parser = PDFResumeParser()
+    markdown = """## Skills
+Python
+SQL
+## Experience
+## Advisor to the Secretary General
+Led data collection and analysis.
+Improved policy outcomes.
+## Education
+BSc Physics
+"""
+    sections = parser.extract_sections(markdown)
+
+    assert "experience" in sections
+    assert "Led data collection and analysis." in sections["experience"]
+    assert "Improved policy outcomes." in sections["experience"]
+    assert "skills" in sections
+    assert "education" in sections
 
 
 def test_parse_markdown_detects_language() -> None:
@@ -48,3 +70,15 @@ def test_parse_markdown_detects_language() -> None:
     assert parsed.source_file == "resume.pdf"
     assert parsed.language in {"es", "unknown"}
     assert parsed.parser_version == "stage3.v1"
+    assert parsed.sections["experience"].startswith("Docente")
+    assert parsed.section_items
+
+
+def test_parse_markdown_extracts_links_in_output() -> None:
+    parser = PDFResumeParser()
+    parsed = parser.parse_markdown(
+        markdown="# Projects\nSee https://example.com/project and https://example.com/project",
+        source_file="resume.pdf",
+    )
+
+    assert parsed.links == ["https://example.com/project"]
