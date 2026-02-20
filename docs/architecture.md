@@ -1,4 +1,4 @@
-# Architecture (Stage 0/1)
+# Architecture (Stage 0/1 baseline + Stage 2/3 in progress)
 
 This document explains what was introduced in the reengineering baseline and why.
 
@@ -28,7 +28,7 @@ What exists now:
 
 - service boundaries for steps 1-4,
 - durable DB schema for step 3,
-- placeholders for step 2/4 behaviors,
+- partial concrete implementation for step 1/2 in Stage 3 parser + ingestion flow,
 - operational primitives (config/logging/CLI/API/tests).
 
 ## 3) Module-by-module breakdown
@@ -67,7 +67,16 @@ Reasoning:
 
 ## `src/ingest/`, `src/extract/`, `src/retrieval/`, `src/ranking/`
 
-Each contains a service class boundary with placeholder behavior.
+`src/ingest/` now contains substantive Stage 3 behavior:
+
+- PDF markdown extraction (`pymupdf4llm`),
+- precleaning of conversion artifacts,
+- heading span detection and canonical mapping,
+- deterministic absorption rule for noisy headings,
+- parsing output used by persistence (`sections`) and richer experimentation (`section_items`, `links`),
+- Metaflow flow for batch orchestration.
+
+`src/extract/`, `src/retrieval/`, and `src/ranking/` remain boundary-first with minimal placeholder behavior.
 
 Reasoning:
 
@@ -155,17 +164,34 @@ The current structure is ready for:
 - hybrid ranking and explanation logic in `src/ranking/`,
 - API expansion for ingestion/jobs/matches in `src/api/`.
 
-## 9) Testing strategy baseline
+## 9) Notebook-driven experimentation
+
+The repository now has a non-legacy notebook suite to validate components in isolation without full pipeline execution:
+
+- `notebooks/parsers_testing.ipynb`: parser QA and behavior assertions.
+- `notebooks/ingestion_service_testing.ipynb`: service helper checks without Metaflow.
+- `notebooks/repositories_smoke_testing.ipynb`: repository contract smoke checks against local DB.
+- `notebooks/llm_registry_testing.ipynb`: alias registry checks and optional credential-gated live calls.
+- `notebooks/README.md`: execution order, prerequisites, pass criteria, troubleshooting.
+
+Design intent:
+
+- accelerate iteration with assertion-driven experiments,
+- reduce ad-hoc local scripts,
+- keep learning/exploration isolated from production service code.
+
+## 10) Testing strategy baseline
 
 Current tests verify:
 
 - settings load reliably,
 - stage-1 tables are registered,
-- CLI command wiring is functional.
+- CLI command wiring is functional,
+- Stage 3 parser and ingestion helper behavior.
 
 Next test increments:
 
 - migration apply/rollback integration tests,
 - repository CRUD tests against ephemeral Postgres,
-- ingest/extract unit tests with fixture resumes,
+- more fixture-driven ingest/extract quality tests with challenging PDFs,
 - deterministic ranking contract tests.

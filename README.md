@@ -2,7 +2,7 @@
 
 `thereisnohr` is being rebuilt as a small, flexible, provider-agnostic Applicant Tracking System (ATS).
 
-This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), starts **Stage 2** (provider-agnostic LLM layer), and begins **Stage 3** ingestion pipeline work.
+This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), starts **Stage 2** (provider-agnostic LLM layer), and delivers a substantial **Stage 3** ingestion/parsing slice.
 
 ## Why this reengineering exists
 
@@ -19,7 +19,7 @@ The first two stages intentionally focus on reliability and architecture, not mo
 - Stage 0 provides a clean runtime shape and testable boundaries.
 - Stage 1 provides data durability and query foundations (Postgres + pgvector).
 
-## Current capabilities (Stage 0/1)
+## Current capabilities (Stage 0/1/2/3 slice)
 
 Implemented now:
 
@@ -39,10 +39,17 @@ Implemented now:
 - alias-based embedding generation through LiteLLM.
 - Metaflow orchestration flow for PDF resume ingestion into Postgres.
 - parser and ingestion services that reuse legacy extraction/cleaning ideas in the new architecture.
+- parser precleaning + heading span detection + canonical section mapping.
+- mandatory section behavior for noisy conversions: absorb consecutive `general` spans into single-line non-`general` sections.
+- parser output contract with `sections`, `section_items`, and extracted `links`.
+- Stage 3 experimentation notebook suite under `notebooks/` (parser QA, ingestion service checks, repository smoke checks, and LLM registry checks).
 
-Not implemented yet (planned in Stage 2+):
+Not implemented yet (planned in Stage 3/4+):
 
-- real resume parsing and section extraction pipeline,
+- stronger candidate identity resolution from resume content (currently file-path heuristic),
+- content-hash-based idempotency (currently `source_file` duplicate skip),
+- run-level ingestion metrics/reporting artifacts in Metaflow,
+- optional OCR fallback for scanned PDFs (explicitly not prioritized right now),
 - retrieval/ranking logic and score explanations,
 - production API endpoints beyond healthcheck.
 
@@ -93,12 +100,12 @@ uv run uvicorn src.api.app:app --reload
 
 ```bash
 uv run alembic upgrade head
+```
 
 6. Run Stage 3 ingestion flow:
 
 ```bash
 uv run python src/ingest/pdf_ingestion_flow.py run --input-dir data --pattern '*.pdf'
-```
 ```
 
 ## Configuration
@@ -177,6 +184,17 @@ print(len(vectors))
 - `docs/stage-0-1-guide.md`: deep usage walkthrough and examples for current code.
 - `docs/stage-2-llm.md`: Stage 2 LiteLLM layer, alias routing, and structured output usage.
 - `docs/stage-3-ingestion.md`: legacy-reuse analysis and Metaflow PDF ingestion pipeline details.
+
+## Notebook suite
+
+Non-legacy experimentation notebooks are in `notebooks/`:
+
+- `parsers_testing.ipynb`: canonical parser QA notebook.
+- `ingestion_service_testing.ipynb`: ingestion service checks without Metaflow execution.
+- `repositories_smoke_testing.ipynb`: repository contract smoke checks against local DB.
+- `llm_registry_testing.ipynb`: alias registry checks + optional credential-gated live calls.
+
+See `notebooks/README.md` for execution order, prerequisites, pass criteria, and troubleshooting.
 
 ## Legacy code note
 
