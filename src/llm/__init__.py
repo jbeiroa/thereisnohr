@@ -1,7 +1,36 @@
 """LLM abstractions and providers."""
 
 from src.llm.client import LLMClient, LiteLLMClient
+from src.llm.errors import (
+    LLMConfigError,
+    LLMError,
+    LLMProviderError,
+    LLMRateLimitError,
+    LLMRetryExhaustedError,
+    LLMSchemaValidationError,
+    LLMStructuredOutputError,
+    LLMTimeoutError,
+)
 from src.llm.factory import build_default_llm_client
 from src.llm.registry import ModelAliasRegistry
+from src.llm.types import FallbackPolicy, LLMCallMetadata, LLMAttempt, LLMUsage, ModelRoute
 
-__all__ = ["LLMClient", "LiteLLMClient", "ModelAliasRegistry", "build_default_llm_client"]
+__all__ = [
+    "LLMClient",
+    "LiteLLMClient",
+    "ModelAliasRegistry",
+    "build_default_llm_client",
+    "ModelRoute",
+    "FallbackPolicy",
+    "LLMUsage",
+    "LLMAttempt",
+    "LLMCallMetadata",
+    "LLMError",
+    "LLMConfigError",
+    "LLMProviderError",
+    "LLMTimeoutError",
+    "LLMRateLimitError",
+    "LLMStructuredOutputError",
+    "LLMSchemaValidationError",
+    "LLMRetryExhaustedError",
+]

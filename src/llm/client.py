@@ -8,6 +8,7 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from src.llm.registry import ModelAliasRegistry
+from src.llm.types import LLMCallMetadata
 
 SchemaModelT = TypeVar("SchemaModelT", bound=BaseModel)
 
@@ -34,6 +35,46 @@ class LLMClient(ABC):
         embedding_model_alias: str,
     ) -> list[list[float]]:
         """Generate embeddings for one or many text inputs."""
+
+    @abstractmethod
+    async def agenerate_structured(
+        self,
+        prompt: str,
+        schema: type[SchemaModelT],
+        model_alias: str,
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> SchemaModelT:
+        """Generate and validate structured output against a schema asynchronously."""
+
+    @abstractmethod
+    async def aembed(
+        self,
+        texts: list[str],
+        embedding_model_alias: str,
+    ) -> list[list[float]]:
+        """Generate embeddings for one or many text inputs asynchronously."""
+
+    @abstractmethod
+    def generate_structured_with_meta(
+        self,
+        prompt: str,
+        schema: type[SchemaModelT],
+        model_alias: str,
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> tuple[SchemaModelT, LLMCallMetadata]:
+        """Generate structured output and return call metadata."""
+
+    @abstractmethod
+    def embed_with_meta(
+        self,
+        texts: list[str],
+        embedding_model_alias: str,
+    ) -> tuple[list[list[float]], LLMCallMetadata]:
+        """Generate embeddings and return call metadata."""
 
 
 class LiteLLMClient(LLMClient):
@@ -146,6 +187,60 @@ class LiteLLMClient(LLMClient):
                 raise ValueError("Embedding response row is missing 'embedding' list")
             vectors.append([float(value) for value in embedding_values])
         return vectors
+
+    async def agenerate_structured(
+        self,
+        prompt: str,
+        schema: type[SchemaModelT],
+        model_alias: str,
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> SchemaModelT:
+        """Boilerplate async structured generation stub for future implementation."""
+        _ = prompt
+        _ = schema
+        _ = model_alias
+        _ = temperature
+        _ = max_tokens
+        raise NotImplementedError("Async structured generation is not implemented yet.")
+
+    async def aembed(
+        self,
+        texts: list[str],
+        embedding_model_alias: str,
+    ) -> list[list[float]]:
+        """Boilerplate async embedding stub for future implementation."""
+        _ = texts
+        _ = embedding_model_alias
+        raise NotImplementedError("Async embedding generation is not implemented yet.")
+
+    def generate_structured_with_meta(
+        self,
+        prompt: str,
+        schema: type[SchemaModelT],
+        model_alias: str,
+        *,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> tuple[SchemaModelT, LLMCallMetadata]:
+        """Boilerplate metadata wrapper stub for future implementation."""
+        _ = prompt
+        _ = schema
+        _ = model_alias
+        _ = temperature
+        _ = max_tokens
+        raise NotImplementedError("Structured generation with metadata is not implemented yet.")
+
+    def embed_with_meta(
+        self,
+        texts: list[str],
+        embedding_model_alias: str,
+    ) -> tuple[list[list[float]], LLMCallMetadata]:
+        """Boilerplate metadata wrapper stub for future implementation."""
+        _ = texts
+        _ = embedding_model_alias
+        raise NotImplementedError("Embedding generation with metadata is not implemented yet.")
 
 
 def _extract_text(response: Any) -> str:
