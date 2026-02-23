@@ -67,6 +67,12 @@ packages = ["src"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-m 'not integration'"
+filterwarnings = [
+  "ignore:builtin type SwigPyPacked has no __module__ attribute:DeprecationWarning",
+  "ignore:builtin type SwigPyObject has no __module__ attribute:DeprecationWarning",
+  "ignore:builtin type swigvarlink has no __module__ attribute:DeprecationWarning",
+  "ignore:The _yaml extension module is now located at yaml._yaml and its location is subject to change\\.:DeprecationWarning",
+]
 markers = [
   "integration: marks tests that require ephemeral Postgres/container runtime",
 ]
