@@ -117,8 +117,8 @@ class ResumePdfIngestionFlow(FlowSpec):
         self.step_events = events
         self.next(self.end)
 
-    @step
     @card(type="blank", id="run_metrics")
+    @step
     def end(self):
         if not hasattr(self, "results"):
             self.results = []
