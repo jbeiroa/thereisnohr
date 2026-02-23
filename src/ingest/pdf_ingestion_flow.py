@@ -1,12 +1,19 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
-from metaflow import FlowSpec, Parameter, step
+from metaflow import FlowSpec, Parameter, card, current, step
 
 from src.core.config import get_settings
+from src.ingest.metaflow_telemetry import (
+    IngestionTelemetryMutator,
+    attach_run_report_card,
+    build_run_report,
+)
 from src.ingest.service import IngestionService
 from src.storage.db import get_session
 
 
+@IngestionTelemetryMutator()
 class ResumePdfIngestionFlow(FlowSpec):
     input_dir = Parameter(
         "input-dir",
@@ -26,11 +33,22 @@ class ResumePdfIngestionFlow(FlowSpec):
         if not input_dir_path.is_absolute():
             input_dir_path = (Path.cwd() / input_dir_path).resolve()
 
+        self.metrics_enabled = settings.ingest_flow_metrics_enabled
+        self.metrics_version = "stage3.metrics.v1"
         self.settings = {
             "database_url": settings.database_url,
             "input_dir": str(input_dir_path),
             "pattern": self.pattern,
         }
+        self.run_meta = {
+            "metrics_version": self.metrics_version,
+            "run_id": getattr(current, "run_id", None),
+            "flow_name": getattr(current, "flow_name", self.__class__.__name__),
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "input_dir": str(input_dir_path),
+            "pattern": self.pattern,
+        }
+        self.step_events = []
         self.next(self.discover_files)
 
     @step
@@ -38,6 +56,11 @@ class ResumePdfIngestionFlow(FlowSpec):
         service = IngestionService()
         files = service.discover_pdf_files(Path(self.settings["input_dir"]), self.settings["pattern"])
         self.pdf_files = [str(path) for path in files]
+        self.discovery_metrics = {
+            "discovered_count": len(self.pdf_files),
+            "input_dir": self.settings["input_dir"],
+            "pattern": self.settings["pattern"],
+        }
 
         if not self.pdf_files:
             self.results = []
@@ -51,23 +74,34 @@ class ResumePdfIngestionFlow(FlowSpec):
         file_path = Path(self.input)
         service = IngestionService()
         session = get_session()
+        started = datetime.now(timezone.utc)
 
         try:
             result = service.ingest_pdf(file_path, session)
             session.commit()
+            duration_ms = (datetime.now(timezone.utc) - started).total_seconds() * 1000.0
             self.ingest_result = {
                 "status": result.status,
                 "source_file": result.source_file,
                 "candidate_id": result.candidate_id,
                 "resume_id": result.resume_id,
                 "section_count": result.section_count,
+                "identity_confidence": result.identity_confidence,
+                "avg_section_confidence": result.avg_section_confidence,
+                "duration_ms": round(duration_ms, 3),
+                "error_type": None,
             }
         except Exception as exc:
             session.rollback()
+            duration_ms = (datetime.now(timezone.utc) - started).total_seconds() * 1000.0
             self.ingest_result = {
                 "status": "error",
                 "source_file": str(file_path),
                 "error": str(exc),
+                "error_type": exc.__class__.__name__,
+                "duration_ms": round(duration_ms, 3),
+                "identity_confidence": None,
+                "avg_section_confidence": None,
             }
         finally:
             session.close()
@@ -77,21 +111,48 @@ class ResumePdfIngestionFlow(FlowSpec):
     @step
     def join_results(self, inputs):
         self.results = [inp.ingest_result for inp in inputs]
+        events: list[dict] = list(getattr(self, "_step_telemetry_events", []))
+        for inp in inputs:
+            events.extend(getattr(inp, "_step_telemetry_events", []))
+        self.step_events = events
         self.next(self.end)
 
     @step
+    @card(type="blank", id="run_metrics")
     def end(self):
         if not hasattr(self, "results"):
             self.results = []
-        ingested = sum(1 for result in self.results if result.get("status") == "ingested")
-        skipped = sum(
-            1
-            for result in self.results
-            if result.get("status") in {"skipped_existing_resume", "skipped_existing_content"}
-        )
-        errors = sum(1 for result in self.results if result.get("status") == "error")
+        if not hasattr(self, "step_events"):
+            self.step_events = list(getattr(self, "_step_telemetry_events", []))
 
-        print(f"Resume ingestion completed: ingested={ingested}, skipped={skipped}, errors={errors}")
+        run_meta = dict(getattr(self, "run_meta", {}))
+        run_meta["finished_at"] = datetime.now(timezone.utc).isoformat()
+        run_meta["metrics_enabled"] = bool(getattr(self, "metrics_enabled", True))
+        run_meta["discovery"] = getattr(self, "discovery_metrics", {})
+
+        self.run_report = build_run_report(
+            run_meta=run_meta,
+            results=self.results,
+            step_events=self.step_events,
+            sample_limit=100,
+        )
+
+        card_attached = False
+        if getattr(self, "metrics_enabled", True):
+            card_attached = attach_run_report_card(self.run_report, card_id="run_metrics")
+
+        status_counts = self.run_report.get("status_counts", {})
+        ingested = status_counts.get("ingested", 0)
+        skipped = (
+            status_counts.get("skipped_existing_resume", 0)
+            + status_counts.get("skipped_existing_content", 0)
+        )
+        errors = status_counts.get("error", 0)
+        print(
+            "Resume ingestion completed: "
+            f"ingested={ingested}, skipped={skipped}, errors={errors}, "
+            f"card_attached={card_attached}"
+        )
 
 
 if __name__ == "__main__":

@@ -120,6 +120,7 @@ LOG_LEVEL=INFO
 DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5433/thereisnohr_stage1
 EMBEDDING_MODEL_ALIAS=embedding_default
 SUMMARIZER_MODEL_ALIAS=summarizer_default
+INGEST_FLOW_METRICS_ENABLED=true
 ```
 
 Configuration is loaded by `src/core/config.py` with typed defaults and env overrides.

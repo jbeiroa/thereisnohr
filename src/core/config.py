@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     llm_timeout_seconds: float = 30.0
     llm_max_retries: int = 2
+    ingest_flow_metrics_enabled: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",

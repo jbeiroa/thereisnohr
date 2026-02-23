@@ -17,6 +17,8 @@ class IngestionResult:
     candidate_id: int | None = None
     resume_id: int | None = None
     section_count: int = 0
+    identity_confidence: float | None = None
+    avg_section_confidence: float | None = None
 
 
 @dataclass
@@ -95,6 +97,7 @@ class IngestionService:
         )
 
         section_count = 0
+        section_confidences: list[float] = []
         for item in parsed.section_items:
             signals = item.signals or {}
             recat = signals.get("recategorization_candidate")
@@ -112,6 +115,13 @@ class IngestionService:
                 tokens=len(item.content.split()),
             )
             section_count += 1
+            section_confidences.append(item.confidence)
+
+        avg_section_confidence = (
+            round(sum(section_confidences) / len(section_confidences), 4)
+            if section_confidences
+            else None
+        )
 
         return IngestionResult(
             status="ingested",
@@ -119,6 +129,8 @@ class IngestionService:
             candidate_id=candidate.id,
             resume_id=resume.id,
             section_count=section_count,
+            identity_confidence=identity.confidence,
+            avg_section_confidence=avg_section_confidence,
         )
 
     def _build_candidate_external_id(self, path: Path) -> str:

@@ -45,9 +45,11 @@ The pre-reengineering code under `thereisnohr/` was analyzed for reuse.
 - `src/ingest/service.py`
   - PDF discovery
   - parse + persist to DB (`candidates`, `resumes`, `resume_sections`)
-  - duplicate-skip behavior by `resumes.source_file`
+  - duplicate-skip behavior by `resumes.source_file` and `resumes.content_hash`
 - `src/ingest/pdf_ingestion_flow.py`
   - Metaflow `FlowSpec` for batch orchestration (`discover -> foreach ingest -> join`)
+  - flow-level run report artifact (`run_report`) with status/timing/quality metrics
+  - styled card reporting in `end` step (`run_metrics`)
 - `src/storage/repositories.py`
   - added candidate external-id dedup helpers
   - added resume lookup and richer create fields
@@ -84,6 +86,14 @@ For each PDF:
 - Includes token count and parser version metadata.
 - Includes confidence/diagnostic metadata (`section_confidence`, flags, recategorization candidate).
 
+4. Flow run report (`run_report` artifact in `end` step)
+- `run_meta`: run id/timestamps/input parameters + discovery metadata.
+- `status_counts`: counts by result status.
+- `step_timing_summary`: per-step latency stats (`p50/p95/max`) + error counts.
+- `ingest_quality`: identity and section confidence summaries.
+- `reason_breakdown`: skip reasons and grouped error types.
+- `files`: per-file outcomes (full) + sampled subset for card rendering.
+
 Parser entity contract also includes richer in-memory output used for experimentation:
 - `ParsedResume.sections`
 - `ParsedResume.section_items`
@@ -101,6 +111,11 @@ CLI helper:
 uv run ats ingest-flow-help
 ```
 
+Flow run now emits:
+- console summary (`ingested/skipped/errors`),
+- `run_report` artifact in flow `end` step,
+- `run_metrics` card with styled KPI/report view.
+
 Backfill utility (dry-run by default):
 
 ```bash
@@ -111,7 +126,6 @@ uv run python scripts/backfill_identity.py --apply
 ## 5) Current constraints
 
 - Optional model-based NER fallback is not enabled by default (rules-first extraction only).
-- No run-level ingestion metrics artifact yet (only summary prints in flow end step).
 - Section diagnostics are persisted, but recategorization remains advisory metadata only.
 - OCR fallback for scanned PDFs is currently de-prioritized and out of active Stage 3 scope.
 - Metaflow execution is local process mode by default.
@@ -132,4 +146,4 @@ Current notebook coverage includes:
 ## 7) Next expected Stage 3 increments
 
 1. Optional model-based fallback for low-confidence name extraction (Presidio/HF/GLiNER adapter).
-4. Ingestion metrics and structured run-level telemetry.
+2. DB-backed integration tests for end-to-end ingestion validation (identity/idempotency/reporting).
