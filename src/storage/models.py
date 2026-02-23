@@ -16,7 +16,7 @@ class Candidate(Base):
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    links: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    links: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )

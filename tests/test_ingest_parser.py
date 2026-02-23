@@ -96,3 +96,14 @@ def test_parse_markdown_populates_section_diagnostics() -> None:
     assert item.signals is not None
     assert "diagnostic_flags" in item.signals
     assert "confidence_inputs" in item.signals
+
+
+def test_accented_and_markdown_headings_are_normalized() -> None:
+    parser = PDFResumeParser()
+    parsed = parser.parse_markdown(
+        markdown="# **Educación**\nUBA\n# **Sobre mí**\nDocente y analista.",
+        source_file="resume.pdf",
+    )
+
+    assert "education" in parsed.sections
+    assert "summary" in parsed.sections

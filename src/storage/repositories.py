@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from src.ingest.identity import estimate_name_quality
 from src.storage import models
 
 
@@ -16,8 +17,9 @@ class CandidateRepository:
         email: str | None = None,
         phone: str | None = None,
         external_id: str | None = None,
+        links: list[str] | None = None,
     ) -> models.Candidate:
-        candidate = models.Candidate(name=name, email=email, phone=phone, external_id=external_id)
+        candidate = models.Candidate(name=name, email=email, phone=phone, external_id=external_id, links=links)
         self.session.add(candidate)
         self.session.flush()
         return candidate
@@ -34,12 +36,21 @@ class CandidateRepository:
         name: str | None = None,
         email: str | None = None,
         phone: str | None = None,
+        links: list[str] | None = None,
+        name_confidence: float | None = None,
     ) -> tuple[models.Candidate, bool]:
         existing = self.get_by_external_id(external_id)
         if existing is not None:
-            self._merge_identity_fields(existing, name=name, email=email, phone=phone)
+            self._merge_identity_fields(
+                existing,
+                name=name,
+                email=email,
+                phone=phone,
+                links=links,
+                name_confidence=name_confidence,
+            )
             return existing, False
-        return self.create(name=name, email=email, phone=phone, external_id=external_id), True
+        return self.create(name=name, email=email, phone=phone, external_id=external_id, links=links), True
 
     def get_or_create_by_identity_key(
         self,
@@ -48,12 +59,16 @@ class CandidateRepository:
         name: str | None = None,
         email: str | None = None,
         phone: str | None = None,
+        links: list[str] | None = None,
+        name_confidence: float | None = None,
     ) -> tuple[models.Candidate, bool]:
         return self.get_or_create_by_external_id(
             external_id=identity_key,
             name=name,
             email=email,
             phone=phone,
+            links=links,
+            name_confidence=name_confidence,
         )
 
     def list_all(self) -> list[models.Candidate]:
@@ -66,14 +81,36 @@ class CandidateRepository:
         name: str | None,
         email: str | None,
         phone: str | None,
+        links: list[str] | None,
+        name_confidence: float | None,
     ) -> None:
-        if name and not candidate.name:
+        existing_quality = estimate_name_quality(candidate.name)
+        incoming_quality = max(float(name_confidence or 0.0), estimate_name_quality(name))
+        if name and (
+            not candidate.name
+            or (incoming_quality >= 0.70 and existing_quality < 0.70)
+        ):
             candidate.name = name
         if email and not candidate.email:
             candidate.email = email
         if phone and not candidate.phone:
             candidate.phone = phone
+        if links:
+            merged = sorted(set(_normalize_links(candidate.links) + _normalize_links(links)))
+            candidate.links = merged
         self.session.flush()
+
+
+def _normalize_links(value: list[str] | dict | None) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(v) for v in value if str(v).strip()]
+    if isinstance(value, dict):
+        urls = value.get("urls")
+        if isinstance(urls, list):
+            return [str(v) for v in urls if str(v).strip()]
+    return []
 
 
 @dataclass

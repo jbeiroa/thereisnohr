@@ -1,4 +1,5 @@
 from src.ingest.identity import (
+    ModelNameResolver,
     compute_identity_key,
     extract_emails,
     extract_identity,
@@ -22,6 +23,12 @@ def test_extract_phones_normalizes_mixed_formats() -> None:
     assert "4155550100" in phones
 
 
+def test_extract_phones_rejects_short_date_like_numbers() -> None:
+    text = "Date-like: 20032008"
+    phones = extract_phones(text)
+    assert phones == []
+
+
 def test_extract_identity_uses_email_name_alignment() -> None:
     parser = PDFResumeParser()
     parsed = parser.parse_markdown(
@@ -34,7 +41,7 @@ def test_extract_identity_uses_email_name_alignment() -> None:
     assert identity.name == "John Doe"
     assert identity.email == "jdoe@example.com"
     assert identity.phone == "+14155550100"
-    assert identity.identity_key.startswith("candidate:v1:")
+    assert identity.identity_key.startswith("candidate:v2:email:")
     assert identity.confidence > 0.7
 
 
@@ -66,3 +73,41 @@ def test_identity_key_deterministic_for_same_identity_tuple() -> None:
     )
 
     assert key_one == key_two
+    assert key_one.startswith("candidate:v2:email:")
+
+
+def test_identity_key_is_stable_when_phone_or_name_change_if_email_matches() -> None:
+    key_one, _ = compute_identity_key(
+        name="John Doe",
+        email="jdoe@example.com",
+        phone="+14155550100",
+        clean_text="ignored",
+    )
+    key_two, _ = compute_identity_key(
+        name="John X Doe",
+        email="jdoe@example.com",
+        phone="+14155550999",
+        clean_text="ignored",
+    )
+    assert key_one == key_two
+
+
+class _FakeModelResolver(ModelNameResolver):
+    def resolve_name(self, text: str, context: dict) -> tuple[str | None, float, dict]:
+        return "Juan Ignacio Beiroa", 0.9, {"method": "fake_model"}
+
+
+def test_extract_identity_uses_model_fallback_when_rule_confidence_low() -> None:
+    parser = PDFResumeParser()
+    parsed = parser.parse_markdown(
+        markdown="# Data Models\njbeiroa@gmail.com\n+54 9 11 3194-9050",
+        source_file="resume.pdf",
+    )
+
+    identity = extract_identity(
+        parsed,
+        allow_model_fallback=True,
+        model_name_resolver=_FakeModelResolver(),
+    )
+    assert identity.name == "Juan Ignacio Beiroa"
+    assert identity.signals["model_fallback_used"] is True

@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -18,6 +19,8 @@ SECTION_MAPPING = {
     "professional profile": "summary",
     "about": "summary",
     "about me": "summary",
+    "sobre mi": "summary",
+    "sobre mí": "summary",
     "career summary": "summary",
     "objective": "summary",
     "career objective": "summary",
@@ -83,6 +86,8 @@ SECTION_MAPPING = {
     "technologies": "skills",
     "tech stack": "skills",
     "tools": "skills",
+    "informatica": "skills",
+    "informática": "skills",
     "habilidades": "skills",
     "competencias": "skills",
     "aptitudes": "skills",
@@ -126,6 +131,10 @@ SECTION_MAPPING = {
     "contacto": "contact",
     "informacion de contacto": "contact",
     "información de contacto": "contact",
+    "idiomas": "skills",
+    "languages": "skills",
+    "publications": "projects",
+    "publicaciones": "projects",
 }
 
 
@@ -397,7 +406,7 @@ class PDFResumeParser:
         return spans
 
     def _map_heading_to_section(self, title: str) -> str:
-        normalized = re.sub(r"[^a-z0-9\s]+", " ", title.lower())
+        normalized = self._normalize_heading_text(title)
         normalized = " ".join(normalized.split())
 
         for key, value in SECTION_MAPPING.items():
@@ -405,6 +414,12 @@ class PDFResumeParser:
                 return value
 
         return "general"
+
+    def _normalize_heading_text(self, title: str) -> str:
+        no_markdown = re.sub(r"[*_`~]+", " ", title)
+        folded = unicodedata.normalize("NFKD", no_markdown)
+        folded = "".join(ch for ch in folded if not unicodedata.combining(ch))
+        return re.sub(r"[^a-z0-9\s]+", " ", folded.lower())
 
     def _build_section_signals(
         self,

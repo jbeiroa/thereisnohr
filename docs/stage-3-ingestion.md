@@ -66,7 +66,7 @@ The pre-reengineering code under `thereisnohr/` was analyzed for reuse.
 For each PDF:
 
 1. Candidate
-- External ID is derived deterministically from content identity signals (`email`, `phone`, `name`) as `candidate:v1:*`.
+- External ID is derived deterministically with email-first identity (`email` -> `phone` -> `name`) as `candidate:v2:*`.
 - Candidate record is upserted by `external_id`.
 - Fallback identity for resumes with no detectable signals uses `resume_content:*`.
 

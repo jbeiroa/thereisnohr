@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import hashlib
 import re
 from dataclasses import dataclass
 from typing import Protocol
 
 from src.ingest.entities import IdentityCandidate, ParsedResume
+from src.ingest.model_fallback import LLMFallbackResolver
 
 EMAIL_REGEX = re.compile(r"(?:mailto:)?([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})", re.IGNORECASE)
 PHONE_REGEX = re.compile(
@@ -29,6 +32,21 @@ NON_NAME_SECTION_WORDS = {
     "proyectos",
     "contacto",
 }
+NON_NAME_PHRASES = {
+    "data models",
+    "model building",
+    "information analysis",
+    "top skills",
+    "languages",
+    "publications",
+}
+LOCATION_HINTS = {
+    "argentina",
+    "buenos aires",
+    "bs as",
+    "bs. as.",
+    "caba",
+}
 
 
 class NameResolver(Protocol):
@@ -50,11 +68,19 @@ class RulesOnlyNameResolver:
         reasons: list[dict] = []
 
         for idx, line in enumerate(candidate_lines):
-            score, reason_codes = self._score_name_line(line, idx, emails)
-            reasons.append({"line": line, "score": round(score, 4), "reason_codes": reason_codes})
+            candidate = _normalize_candidate_name_line(line)
+            score, reason_codes = self._score_name_line(candidate, idx, emails)
+            reasons.append(
+                {
+                    "line": line,
+                    "candidate": candidate,
+                    "score": round(score, 4),
+                    "reason_codes": reason_codes,
+                }
+            )
             if score > best_score:
                 best_score = score
-                best_name = _normalize_name(line)
+                best_name = _normalize_name(candidate)
 
         if best_score < 0.35:
             return None, round(best_score, 4), {"method": "rules", "candidates": reasons}
@@ -74,6 +100,10 @@ class RulesOnlyNameResolver:
         lowered = cleaned.lower()
         if any(word in lowered for word in NON_NAME_SECTION_WORDS):
             return 0.0, ["section_keyword_match"]
+        if any(phrase in lowered for phrase in NON_NAME_PHRASES):
+            return 0.0, ["non_name_phrase_match"]
+        if any(hint in lowered for hint in LOCATION_HINTS):
+            return 0.0, ["location_hint_match"]
 
         digit_ratio = sum(char.isdigit() for char in cleaned) / max(len(cleaned), 1)
         if digit_ratio > 0.1:
@@ -117,18 +147,50 @@ class RulesOnlyNameResolver:
 
 @dataclass
 class ModelNameResolver:
-    threshold: float = 0.35
+    llm_resolver: LLMFallbackResolver | None = None
 
     def resolve_name(self, text: str, context: dict) -> tuple[str | None, float, dict]:
-        # Placeholder interface for future Presidio/HF/GLiNER integration.
-        return None, 0.0, {"method": "model_placeholder", "enabled": False}
+        if self.llm_resolver is None:
+            return None, 0.0, {"method": "model_llm", "enabled": False}
+
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        candidate_lines = [_normalize_candidate_name_line(_strip_line_prefix(line)) for line in lines[:10]]
+        candidate_lines = [line for line in candidate_lines if line]
+
+        try:
+            result = self.llm_resolver.resolve_name(
+                candidate_lines=candidate_lines,
+                emails=context.get("emails", []),
+                phones=context.get("phones", []),
+                language=context.get("language"),
+            )
+        except Exception as exc:
+            return None, 0.0, {"method": "model_llm", "enabled": True, "error": str(exc)}
+
+        candidate = _normalize_name(result.name)
+        if not _is_valid_person_name(candidate):
+            return None, 0.0, {
+                "method": "model_llm",
+                "enabled": True,
+                "rejected_reason": "invalid_name_shape",
+                "reason": result.reason,
+            }
+
+        return candidate, float(result.confidence), {
+            "method": "model_llm",
+            "enabled": True,
+            "reason": result.reason,
+        }
 
 
 def extract_identity(
     parsed: ParsedResume,
     *,
     name_resolver: NameResolver | None = None,
+    model_name_resolver: NameResolver | None = None,
     allow_model_fallback: bool = False,
+    name_fallback_trigger_threshold: float = 0.60,
+    name_model_accept_threshold: float = 0.70,
 ) -> IdentityCandidate:
     emails = extract_emails(parsed.clean_text)
     phones = extract_phones(parsed.clean_text)
@@ -145,8 +207,12 @@ def extract_identity(
     )
 
     model_used = False
-    if allow_model_fallback and name_confidence < 0.35 and (emails or phones):
-        model_name, model_confidence, model_signals = ModelNameResolver().resolve_name(
+    model_signals: dict | None = None
+    fallback_reason = "not_attempted"
+    if allow_model_fallback and name_confidence < name_fallback_trigger_threshold and (emails or phones):
+        fallback_reason = "attempted"
+        model_resolver = model_name_resolver or ModelNameResolver()
+        model_name, model_confidence, model_signals = model_resolver.resolve_name(
             parsed.raw_text,
             {
                 "emails": emails,
@@ -154,7 +220,7 @@ def extract_identity(
                 "language": parsed.language,
             },
         )
-        if model_name and model_confidence > name_confidence:
+        if model_name and model_confidence >= name_model_accept_threshold and model_confidence > name_confidence:
             name = model_name
             name_confidence = model_confidence
             name_signals = {
@@ -162,6 +228,9 @@ def extract_identity(
                 "fallback": model_signals,
             }
             model_used = True
+            fallback_reason = "accepted"
+        else:
+            fallback_reason = "rejected"
 
     email = emails[0] if emails else None
     phone = phones[0] if phones else None
@@ -182,6 +251,15 @@ def extract_identity(
         "identity_key_reason": identity_key_reason,
         "confidence_inputs": confidence_inputs,
         "model_fallback_used": model_used,
+        "name_resolution": {
+            "primary_method": "rules",
+            "fallback_method": "model_llm",
+            "fallback_status": fallback_reason,
+            "trigger_threshold": round(name_fallback_trigger_threshold, 4),
+            "accept_threshold": round(name_model_accept_threshold, 4),
+            "primary_confidence": round(float(confidence_inputs.get("name_confidence", 0.0)), 4),
+            "fallback_signals": model_signals,
+        },
     }
 
     return IdentityCandidate(
@@ -210,19 +288,18 @@ def compute_identity_key(
     normalized_phone = normalize_phone(phone) if phone else None
     normalized_name = _normalize_name(name) if name else None
 
-    if not any([normalized_email, normalized_phone, normalized_name]):
-        digest = compute_content_hash(clean_text)[:24]
-        return f"resume_content:{digest}", "content_fallback"
+    if normalized_email:
+        digest = hashlib.sha256(normalized_email.encode("utf-8")).hexdigest()[:24]
+        return f"candidate:v2:email:{digest}", "email_primary"
+    if normalized_phone:
+        digest = hashlib.sha256(normalized_phone.encode("utf-8")).hexdigest()[:24]
+        return f"candidate:v2:phone:{digest}", "phone_primary"
+    if normalized_name:
+        digest = hashlib.sha256(normalized_name.lower().encode("utf-8")).hexdigest()[:24]
+        return f"candidate:v2:name:{digest}", "name_primary"
 
-    payload = "idv1|" + "|".join(
-        [
-            normalized_email or "",
-            normalized_phone or "",
-            normalized_name.lower() if normalized_name else "",
-        ]
-    )
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:24]
-    return f"candidate:v1:{digest}", "identity_tuple"
+    digest = compute_content_hash(clean_text)[:24]
+    return f"resume_content:{digest}", "content_fallback"
 
 
 def extract_emails(text: str) -> list[str]:
@@ -253,7 +330,9 @@ def normalize_phone(phone: str | None) -> str | None:
     raw = phone.strip()
     has_plus = raw.startswith("+")
     digits = re.sub(r"\D", "", raw)
-    if len(digits) < 7:
+    if has_plus and not 8 <= len(digits) <= 15:
+        return None
+    if not has_plus and len(digits) < 10:
         return None
     if has_plus:
         return f"+{digits}"
@@ -286,6 +365,26 @@ def score_identity_confidence(
     return round(score, 4), {"reason_codes": reasons, "name_confidence": round(name_confidence, 4)}
 
 
+def estimate_name_quality(name: str | None) -> float:
+    if not name:
+        return 0.0
+    normalized = _normalize_name(name)
+    if not normalized:
+        return 0.0
+    if not _is_valid_person_name(normalized):
+        return 0.2
+    score = 0.55
+    token_count = len(normalized.split())
+    if 2 <= token_count <= 4:
+        score += 0.2
+    lowered = normalized.lower()
+    if any(hint in lowered for hint in LOCATION_HINTS):
+        score -= 0.35
+    if any(phrase in lowered for phrase in NON_NAME_PHRASES):
+        score -= 0.35
+    return round(max(0.0, min(1.0, score)), 4)
+
+
 def _email_name_match_bonus(name: str, emails: list[str]) -> float:
     if not emails:
         return 0.0
@@ -313,6 +412,8 @@ def _normalize_name(value: str | None) -> str | None:
     if not value:
         return None
     cleaned = re.sub(r"\s+", " ", value).strip()
+    cleaned = re.sub(r"[^\w\s'\-]", " ", cleaned)
+    cleaned = _normalize_whitespace(cleaned)
     tokens = [token for token in cleaned.split(" ") if token]
     return " ".join(token.capitalize() for token in tokens)
 
@@ -325,3 +426,38 @@ def _strip_line_prefix(text: str) -> str:
     stripped = text.strip()
     stripped = re.sub(r"^[#>\-\*\u2022]+\s*", "", stripped)
     return stripped
+
+
+def _normalize_candidate_name_line(line: str) -> str:
+    candidate = _normalize_whitespace(line)
+    candidate = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", candidate)
+    for sep in [" | ", " — ", " – ", " - "]:
+        if sep in candidate:
+            candidate = candidate.split(sep, 1)[0].strip()
+            break
+    candidate = re.sub(r"\s+", " ", candidate).strip(" -|,;")
+    return candidate
+
+
+def _is_valid_person_name(name: str | None) -> bool:
+    if not name:
+        return False
+    cleaned = _normalize_whitespace(name)
+    parts = cleaned.split(" ")
+    if not 2 <= len(parts) <= 4:
+        return False
+    lowered = cleaned.lower()
+    if any(word in lowered for word in NON_NAME_SECTION_WORDS):
+        return False
+    if any(phrase in lowered for phrase in NON_NAME_PHRASES):
+        return False
+    if any(hint in lowered for hint in LOCATION_HINTS):
+        return False
+    if any(char.isdigit() for char in cleaned):
+        return False
+    name_like = sum(
+        1
+        for part in parts
+        if (part[:1].isupper() and part[1:].islower()) or part.isupper()
+    )
+    return name_like >= 2

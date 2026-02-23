@@ -36,7 +36,8 @@ def test_candidate_identity_reuse_across_files(db_session, tmp_path: Path) -> No
     assert db_counts["resumes"] == 2
 
     candidate = db_session.query(models.Candidate).one()
-    assert candidate.external_id.startswith("candidate:v1:")
+    assert candidate.external_id.startswith("candidate:v2:email:")
+    assert isinstance(candidate.links, list)
 
     resume = db_session.query(models.Resume).filter(models.Resume.id == r1.resume_id).one()
     parsed = resume.parsed_json or {}
@@ -134,3 +135,5 @@ def test_section_diagnostics_persisted(db_session, tmp_path: Path) -> None:
     assert "section_confidence" in metadata
     assert "diagnostic_flags" in metadata
     assert "recategorization_candidate" in metadata
+    assert "original_section_type" in metadata
+    assert "section_routed_by_model" in metadata

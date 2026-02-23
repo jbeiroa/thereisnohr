@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = 30.0
     llm_max_retries: int = 2
     ingest_flow_metrics_enabled: bool = True
+    ingest_enable_name_model_fallback: bool = True
+    ingest_enable_section_model_fallback: bool = True
+    ingest_name_rule_trigger_threshold: float = 0.60
+    ingest_name_model_accept_threshold: float = 0.70
+    ingest_section_model_accept_threshold: float = 0.75
+    ingest_section_model_max_chars: int = 700
 
     model_config = SettingsConfigDict(
         env_file=".env",
