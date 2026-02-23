@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 
 def project_root() -> Path:
     """Return notebook execution root (expected repository root)."""
-    return Path.cwd()
+    return Path.cwd().parent
 
 
 def data_dir() -> Path:
