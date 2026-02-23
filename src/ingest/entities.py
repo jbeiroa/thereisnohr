@@ -1,8 +1,12 @@
+"""Application module `src.ingest.entities`."""
+
 from dataclasses import dataclass
 from typing import TypedDict
 
 
 class SectionDiagnostics(TypedDict, total=False):
+    """Represents SectionDiagnostics."""
+
     diagnostic_flags: list[str]
     confidence_inputs: dict
     recategorization_candidate: dict | None
@@ -10,6 +14,8 @@ class SectionDiagnostics(TypedDict, total=False):
 
 @dataclass
 class HeadingSpan:
+    """Represents HeadingSpan."""
+
     raw_heading: str
     title: str
     start_line: int
@@ -18,6 +24,8 @@ class HeadingSpan:
 
 @dataclass(frozen=True)
 class SectionItem:
+    """Represents SectionItem."""
+
     raw_heading: str
     normalized_type: str
     content: str
@@ -27,6 +35,8 @@ class SectionItem:
 
 @dataclass(frozen=True)
 class IdentitySignals:
+    """Represents IdentitySignals."""
+
     name: str
     emails: str | list[str]
     phones: str | list[str]
@@ -35,6 +45,8 @@ class IdentitySignals:
 
 @dataclass(frozen=True)
 class IdentityCandidate:
+    """Represents IdentityCandidate."""
+
     name: str | None
     email: str | None
     phone: str | None
@@ -45,6 +57,8 @@ class IdentityCandidate:
 
 @dataclass(frozen=True)
 class ParsedResume:
+    """Represents ParsedResume."""
+
     source_file: str
     raw_text: str
     clean_text: str

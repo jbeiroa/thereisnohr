@@ -1,3 +1,5 @@
+"""Application module `thereisnohr.data.getter`."""
+
 import os
 from dataclasses import dataclass, field
 from typing import List, Optional

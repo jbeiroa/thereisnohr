@@ -1,3 +1,5 @@
+"""Application module `src.ingest.parser`."""
+
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -140,13 +142,34 @@ SECTION_MAPPING = {
 
 @dataclass
 class PDFResumeParser:
+    """Represents PDFResumeParser."""
+
     parser_version: str = "stage3.v1"
 
     def parse(self, path: Path) -> ParsedResume:
+        """Run parse.
+
+        Args:
+            path: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         markdown = self.extract_markdown(path)
         return self.parse_markdown(markdown=markdown, source_file=str(path))
 
     def parse_markdown(self, markdown: str, source_file: str) -> ParsedResume:
+        """Run parse markdown.
+
+        Args:
+            markdown: Input parameter.
+            source_file: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         clean_markdown = self._preclean_markdown(markdown)
         clean_text, _ = self.clean_resume_blocks(clean_markdown)
         links = self.extract_links(clean_markdown)
@@ -174,12 +197,30 @@ class PDFResumeParser:
         )
 
     def extract_markdown(self, path: Path) -> str:
+        """Extract markdown.
+
+        Args:
+            path: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         if not path.exists():
             raise FileNotFoundError(f"Resume not found: {path}")
         doc = pymupdf.open(path)
         return pymupdf4llm.to_markdown(doc, show_progress=False)
 
     def split_by_blocks(self, text: str) -> list[str]:
+        """Run split by blocks.
+
+        Args:
+            text: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         blocks = re.split(r"\n\n", text)
         cleaned: list[str] = []
         for block in blocks:
@@ -189,6 +230,15 @@ class PDFResumeParser:
         return cleaned
 
     def clean_resume_blocks(self, text: str) -> tuple[str, list[str]]:
+        """Run clean resume blocks.
+
+        Args:
+            text: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         extracted_links: list[str] = []
         unique_blocks: list[str] = []
         seen_blocks: set[str] = set()
@@ -213,10 +263,29 @@ class PDFResumeParser:
         return text_out, unique_links
 
     def extract_links(self, text: str) -> list[str]:
+        """Extract links.
+
+        Args:
+            text: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         links = re.findall(r"https?://[^\s\)\]]+", text)
         return sorted(set(links))
 
     def extract_sections(self, markdown: str, spans: list[HeadingSpan] | None = None) -> dict[str, str]:
+        """Extract sections.
+
+        Args:
+            markdown: Input parameter.
+            spans: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         if spans is None:
             mapped_spans: list[HeadingSpan] = []
             for span in self._find_heading_spans(markdown):
@@ -236,6 +305,16 @@ class PDFResumeParser:
     def _extract_sections_and_items(
         self, markdown: str, spans: list[HeadingSpan]
     ) -> tuple[dict[str, str], list[SectionItem]]:
+        """Helper for  extract sections and items.
+
+        Args:
+            markdown: Input parameter.
+            spans: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         lines = markdown.splitlines()
         sections: dict[str, str] = {}
         items: list[SectionItem] = []
@@ -289,6 +368,15 @@ class PDFResumeParser:
         return sections, items
 
     def detect_language(self, text: str) -> str:
+        """Run detect language.
+
+        Args:
+            text: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         lowered = text.lower()
         english_markers = ["experience", "education", "skills", "university"]
         spanish_markers = ["experiencia", "educación", "habilidades", "universidad"]
@@ -303,6 +391,15 @@ class PDFResumeParser:
         return "es"
 
     def _remove_omitted_pictures(self, markdown: str) -> str:
+        """Helper for  remove omitted pictures.
+
+        Args:
+            markdown: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         return re.sub(
             r"\*\*==>.*?<==\*\*",
             "",
@@ -352,6 +449,15 @@ class PDFResumeParser:
         return "\n".join(cleaned_lines)
 
     def _remove_all_bullet_chars(self, text: str) -> str:
+        """Helper for  remove all bullet chars.
+
+        Args:
+            text: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         bullet_chars = r"[\u2022\u25AA\u25E6\u2023\u00B7]"
         return re.sub(bullet_chars, "", text)
 
@@ -366,6 +472,15 @@ class PDFResumeParser:
         return re.sub(pattern, "", text)
 
     def _preclean_markdown(self, markdown: str) -> str:
+        """Helper for  preclean markdown.
+
+        Args:
+            markdown: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         clean_markdown=self._remove_omitted_pictures(markdown)
         clean_markdown=self._remove_encoding_artifacts(clean_markdown)
         clean_markdown=self._clean_markdown_table_artifacts(clean_markdown)
@@ -374,6 +489,15 @@ class PDFResumeParser:
         return clean_markdown
 
     def _find_heading_spans(self, markdown: str) -> list[HeadingSpan]:
+        """Helper for  find heading spans.
+
+        Args:
+            markdown: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         lines = markdown.splitlines()
         heading_pattern = re.compile(r"^(#{1,6})\s+(.*)")
 
@@ -406,6 +530,15 @@ class PDFResumeParser:
         return spans
 
     def _map_heading_to_section(self, title: str) -> str:
+        """Helper for  map heading to section.
+
+        Args:
+            title: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         normalized = self._normalize_heading_text(title)
         normalized = " ".join(normalized.split())
 
@@ -416,6 +549,15 @@ class PDFResumeParser:
         return "general"
 
     def _normalize_heading_text(self, title: str) -> str:
+        """Helper for  normalize heading text.
+
+        Args:
+            title: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         no_markdown = re.sub(r"[*_`~]+", " ", title)
         folded = unicodedata.normalize("NFKD", no_markdown)
         folded = "".join(ch for ch in folded if not unicodedata.combining(ch))
@@ -428,6 +570,17 @@ class PDFResumeParser:
         raw_heading: str,
         content: str,
     ) -> dict:
+        """Helper for  build section signals.
+
+        Args:
+            normalized_type: Input parameter.
+            raw_heading: Input parameter.
+            content: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         flags: list[str] = []
         heading_mapped_to_general = bool(raw_heading.strip()) and normalized_type == "general"
         if heading_mapped_to_general:
@@ -455,6 +608,15 @@ class PDFResumeParser:
         }
 
     def _looks_like_contact_block(self, content: str) -> bool:
+        """Helper for  looks like contact block.
+
+        Args:
+            content: Input parameter.
+
+        Returns:
+            bool: True when the condition is met.
+
+        """
         lowered = content.lower()
         has_email = bool(re.search(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}", lowered))
         has_phone = bool(re.search(r"(?:\+?\d[\d\s().\-/]{6,}\d)", content))
@@ -467,6 +629,17 @@ class PDFResumeParser:
         content: str,
         has_contact_hint: bool,
     ) -> dict | None:
+        """Helper for  suggest recategorization.
+
+        Args:
+            normalized_type: Input parameter.
+            content: Input parameter.
+            has_contact_hint: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         lowered = content.lower()
         if normalized_type != "general":
             return None

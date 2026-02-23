@@ -1,9 +1,17 @@
+"""Application module `src.llm.factory`."""
+
 from src.core.config import get_settings
 from src.llm.client import LiteLLMClient
 from src.llm.registry import ModelAliasRegistry
 
 
 def build_default_llm_client() -> LiteLLMClient:
+    """Build default llm client.
+
+    Returns:
+        object: Computed result.
+
+    """
     settings = get_settings()
     registry = ModelAliasRegistry(settings.model_aliases_path)
     return LiteLLMClient(

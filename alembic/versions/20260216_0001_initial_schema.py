@@ -20,6 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    """Run upgrade.
+
+    """
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
     op.create_table(
@@ -94,6 +97,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Run downgrade.
+
+    """
     op.drop_table("matches")
     op.drop_index("ix_embeddings_owner", table_name="embeddings")
     op.drop_index(op.f("ix_embeddings_text_hash"), table_name="embeddings")

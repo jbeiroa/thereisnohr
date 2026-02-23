@@ -1,3 +1,5 @@
+"""Application module `src.llm.registry`."""
+
 from pathlib import Path
 
 import yaml
@@ -6,11 +8,28 @@ from src.llm.types import ModelAlias
 
 
 class ModelAliasRegistry:
+    """Represents ModelAliasRegistry."""
+
     def __init__(self, config_path: Path) -> None:
+        """Initialize the instance.
+
+        Args:
+            config_path: Input parameter.
+
+        """
         self.config_path = config_path
         self._aliases = self._load()
 
     def get(self, alias_name: str) -> ModelAlias:
+        """Run get.
+
+        Args:
+            alias_name: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         try:
             return self._aliases[alias_name]
         except KeyError as exc:
@@ -18,6 +37,12 @@ class ModelAliasRegistry:
             raise KeyError(f"Unknown model alias '{alias_name}'. Known aliases: {known}") from exc
 
     def _load(self) -> dict[str, ModelAlias]:
+        """Helper for  load.
+
+        Returns:
+            object: Computed result.
+
+        """
         if not self.config_path.exists():
             raise FileNotFoundError(f"Model alias config not found: {self.config_path}")
 

@@ -1,3 +1,5 @@
+"""Utility script for `backfill_identity` workflows."""
+
 from __future__ import annotations
 
 import argparse
@@ -9,6 +11,15 @@ from src.storage.models import Candidate, Resume
 
 
 def run_backfill(*, apply: bool) -> int:
+    """Run run backfill.
+
+    Args:
+        apply: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     session = get_session()
     try:
         resumes = session.query(Resume).all()
@@ -43,6 +54,12 @@ def run_backfill(*, apply: bool) -> int:
 
 
 def main() -> int:
+    """Run main.
+
+    Returns:
+        object: Computed result.
+
+    """
     parser = argparse.ArgumentParser(description="Backfill resume content hashes and report duplicate identity keys.")
     parser.add_argument("--apply", action="store_true", help="Persist changes. Default is dry-run.")
     args = parser.parse_args()

@@ -1,3 +1,5 @@
+"""Application module `thereisnohr.models.profiler`."""
+
 from dataclasses import dataclass, field
 from typing import List
 import ollama

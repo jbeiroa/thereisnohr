@@ -1,3 +1,5 @@
+"""Application module `src.ingest.metaflow_telemetry`."""
+
 from __future__ import annotations
 
 import os
@@ -12,16 +14,41 @@ from metaflow.cards import Markdown, Table, ValueBox
 
 
 def _utc_now_iso() -> str:
+    """Helper for  utc now iso.
+
+    Returns:
+        object: Computed result.
+
+    """
     return datetime.now(timezone.utc).isoformat()
 
 
 def _parse_bool(value: str | None, *, default: bool) -> bool:
+    """Helper for  parse bool.
+
+    Args:
+        value: Input parameter.
+        default: Input parameter.
+
+    Returns:
+        bool: True when the condition is met.
+
+    """
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _telemetry_enabled(flow: Any) -> bool:
+    """Helper for  telemetry enabled.
+
+    Args:
+        flow: Input parameter.
+
+    Returns:
+        bool: True when the condition is met.
+
+    """
     enabled = getattr(flow, "metrics_enabled", None)
     if isinstance(enabled, bool):
         return enabled
@@ -29,6 +56,16 @@ def _telemetry_enabled(flow: Any) -> bool:
 
 
 def _percentile(values: list[float], p: float) -> float | None:
+    """Helper for  percentile.
+
+    Args:
+        values: Input parameter.
+        p: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     if not values:
         return None
     if len(values) == 1:
@@ -53,6 +90,18 @@ def _collect_step_event(
     status: str,
     exception_type: str | None,
 ) -> None:
+    """Helper for  collect step event.
+
+    Args:
+        flow: Input parameter.
+        step_name: Input parameter.
+        start_ts: Input parameter.
+        end_ts: Input parameter.
+        duration_ms: Input parameter.
+        status: Input parameter.
+        exception_type: Input parameter.
+
+    """
     event = {
         "step_name": step_name,
         "task_pathspec": getattr(current, "pathspec", None),
@@ -70,6 +119,15 @@ def _collect_step_event(
 
 
 def _ingest_step_telemetry_impl(step_name: str, flow: Any, inputs: Any, attributes: dict):
+    """Helper for  ingest step telemetry impl.
+
+    Args:
+        step_name: Input parameter.
+        flow: Input parameter.
+        inputs: Input parameter.
+        attributes: Input parameter.
+
+    """
     if not _telemetry_enabled(flow):
         yield
         return
@@ -102,10 +160,24 @@ ingest_step_telemetry = user_step_decorator(_ingest_step_telemetry_impl)
 
 
 class IngestionTelemetryMutator(FlowMutator):
+    """Represents IngestionTelemetryMutator."""
+
     def init(self, exclude_steps: list[str] | None = None):
+        """Run init.
+
+        Args:
+            exclude_steps: Input parameter.
+
+        """
         self.exclude_steps = set(exclude_steps or [])
 
     def pre_mutate(self, mutable_flow):
+        """Run pre mutate.
+
+        Args:
+            mutable_flow: Input parameter.
+
+        """
         for step_name, mutable_step in mutable_flow.steps:
             if step_name in self.exclude_steps:
                 continue
@@ -113,12 +185,30 @@ class IngestionTelemetryMutator(FlowMutator):
 
 
 def summarize_status_counts(results: list[dict]) -> dict[str, int]:
+    """Run summarize status counts.
+
+    Args:
+        results: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     statuses = [result.get("status", "unknown") for result in results]
     counts = Counter(statuses)
     return dict(sorted(counts.items(), key=lambda item: item[0]))
 
 
 def summarize_reason_breakdown(results: list[dict]) -> dict[str, dict[str, int]]:
+    """Run summarize reason breakdown.
+
+    Args:
+        results: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     skip_reasons = Counter()
     error_types = Counter()
 
@@ -137,6 +227,15 @@ def summarize_reason_breakdown(results: list[dict]) -> dict[str, dict[str, int]]
 
 
 def summarize_step_timing(step_events: list[dict]) -> dict[str, dict[str, float | int | None]]:
+    """Run summarize step timing.
+
+    Args:
+        step_events: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     grouped: dict[str, list[float]] = defaultdict(list)
     error_counts: dict[str, int] = defaultdict(int)
 
@@ -174,6 +273,15 @@ def summarize_step_timing(step_events: list[dict]) -> dict[str, dict[str, float 
 
 
 def _summarize_numeric(values: list[float]) -> dict[str, float | int | None]:
+    """Helper for  summarize numeric.
+
+    Args:
+        values: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     if not values:
         return {
             "count": 0,
@@ -195,6 +303,15 @@ def _summarize_numeric(values: list[float]) -> dict[str, float | int | None]:
 
 
 def summarize_confidence(results: list[dict]) -> dict[str, dict[str, float | int | None]]:
+    """Run summarize confidence.
+
+    Args:
+        results: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     identity_values = [
         float(value)
         for value in (result.get("identity_confidence") for result in results)
@@ -219,6 +336,18 @@ def build_run_report(
     step_events: list[dict],
     sample_limit: int = 100,
 ) -> dict:
+    """Build run report.
+
+    Args:
+        run_meta: Input parameter.
+        results: Input parameter.
+        step_events: Input parameter.
+        sample_limit: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     status_counts = summarize_status_counts(results)
     total_files = len(results)
     ingested = status_counts.get("ingested", 0)
@@ -243,11 +372,31 @@ def build_run_report(
 
 
 def _kpi_markup(report: dict) -> str:
+    """Helper for  kpi markup.
+
+    Args:
+        report: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     status = report.get("status_counts", {})
     total = report.get("totals", {}).get("files_total", 0)
     success = report.get("totals", {}).get("success_rate", 0.0)
 
     def tile(title: str, value: Any, color: str) -> str:
+        """Run tile.
+
+        Args:
+            title: Input parameter.
+            value: Input parameter.
+            color: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         return (
             "<div style='flex:1; min-width:140px; padding:12px; border-radius:12px;"
             " border:1px solid #dbe2ef; background:linear-gradient(135deg,#ffffff,#f6f9fc);'>"
@@ -272,12 +421,30 @@ def _kpi_markup(report: dict) -> str:
 
 
 def _build_status_table(report: dict) -> Table:
+    """Helper for  build status table.
+
+    Args:
+        report: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     status_counts = report.get("status_counts", {})
     rows = [[status, count] for status, count in sorted(status_counts.items())]
     return Table(data=rows or [["(none)", 0]], headers=["Status", "Count"])
 
 
 def _build_confidence_table(report: dict) -> Table:
+    """Helper for  build confidence table.
+
+    Args:
+        report: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     quality = report.get("ingest_quality", {})
     rows: list[list[Any]] = []
     for metric_name, values in quality.items():
@@ -298,6 +465,15 @@ def _build_confidence_table(report: dict) -> Table:
 
 
 def _build_reason_table(report: dict) -> Table:
+    """Helper for  build reason table.
+
+    Args:
+        report: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     reasons = report.get("reason_breakdown", {})
     rows: list[list[Any]] = []
     for status, count in sorted((reasons.get("skip_reasons") or {}).items()):
@@ -308,6 +484,15 @@ def _build_reason_table(report: dict) -> Table:
 
 
 def _build_file_table(report: dict) -> Table:
+    """Helper for  build file table.
+
+    Args:
+        report: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     files = report.get("files_sample", [])
     rows: list[list[Any]] = []
     for item in files:
@@ -339,6 +524,15 @@ def _build_file_table(report: dict) -> Table:
 
 
 def render_run_report_card(report: dict) -> list[Any]:
+    """Run render run report card.
+
+    Args:
+        report: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     run_meta = report.get("run_meta", {})
 
     return [
@@ -363,6 +557,16 @@ def render_run_report_card(report: dict) -> list[Any]:
 
 
 def attach_run_report_card(report: dict, card_id: str = "run_metrics") -> bool:
+    """Run attach run report card.
+
+    Args:
+        report: Input parameter.
+        card_id: Input parameter.
+
+    Returns:
+        bool: True when the condition is met.
+
+    """
     card_container = getattr(current, "card", None)
     if card_container is None:
         return False

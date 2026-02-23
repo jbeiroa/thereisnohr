@@ -1,3 +1,5 @@
+"""Application module `src.ingest.service`."""
+
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +18,8 @@ from src.storage.repositories import CandidateRepository, ResumeRepository, Resu
 
 @dataclass(frozen=True)
 class IngestionResult:
+    """Represents IngestionResult."""
+
     status: str
     source_file: str
     candidate_id: int | None = None
@@ -27,6 +31,8 @@ class IngestionResult:
 
 @dataclass
 class IngestionService:
+    """Represents IngestionService."""
+
     parser: PDFResumeParser | None = None
     llm_client: LLMClient | None = None
     enable_name_model_fallback: bool | None = None
@@ -37,6 +43,9 @@ class IngestionService:
     section_model_max_chars: int | None = None
 
     def __post_init__(self) -> None:
+        """Helper for   post init  .
+
+        """
         settings = get_settings()
         if self.parser is None:
             self.parser = PDFResumeParser()
@@ -54,15 +63,44 @@ class IngestionService:
             self.section_model_max_chars = settings.ingest_section_model_max_chars
 
     def discover_pdf_files(self, input_dir: Path, pattern: str = "*.pdf") -> list[Path]:
+        """Run discover pdf files.
+
+        Args:
+            input_dir: Input parameter.
+            pattern: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         if not input_dir.exists():
             raise FileNotFoundError(f"Input directory does not exist: {input_dir}")
         return sorted(path for path in input_dir.rglob(pattern) if path.is_file())
 
     def parse_pdf(self, path: Path) -> ParsedResume:
+        """Run parse pdf.
+
+        Args:
+            path: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         assert self.parser is not None
         return self.parser.parse(path)
 
     def ingest_pdf(self, path: Path, session: Session) -> IngestionResult:
+        """Run ingest pdf.
+
+        Args:
+            path: Input parameter.
+            session: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         parsed = self.parse_pdf(path)
         resume_content_hash = compute_content_hash(parsed.clean_text)
 
@@ -163,6 +201,16 @@ class IngestionService:
         )
 
     def _build_section_payloads(self, *, parsed: ParsedResume, resume_id: int) -> list[dict]:
+        """Helper for  build section payloads.
+
+        Args:
+            parsed: Input parameter.
+            resume_id: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         payloads: list[dict] = []
         fallback_resolver = self._build_llm_fallback_resolver() if self.enable_section_model_fallback else None
 
@@ -215,9 +263,25 @@ class IngestionService:
         return payloads
 
     def _should_route_section(self, section_type: str, confidence: float) -> bool:
+        """Helper for  should route section.
+
+        Args:
+            section_type: Input parameter.
+            confidence: Input parameter.
+
+        Returns:
+            bool: True when the condition is met.
+
+        """
         return section_type == "general" or confidence < float(self.section_model_accept_threshold or 0.75)
 
     def _build_llm_fallback_resolver(self) -> LLMFallbackResolver | None:
+        """Helper for  build llm fallback resolver.
+
+        Returns:
+            object: Computed result.
+
+        """
         client = self.llm_client
         if client is None:
             try:
@@ -227,9 +291,27 @@ class IngestionService:
         return LLMFallbackResolver(client)
 
     def _build_candidate_external_id(self, path: Path) -> str:
+        """Helper for  build candidate external id.
+
+        Args:
+            path: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         digest = hashlib.sha256(str(path.resolve()).encode("utf-8")).hexdigest()[:16]
         return f"resume_file:{digest}"
 
     def _infer_candidate_name(self, path: Path) -> str:
+        """Helper for  infer candidate name.
+
+        Args:
+            path: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         raw = path.stem.replace("_", " ").replace("-", " ").strip()
         return " ".join(part.capitalize() for part in raw.split())

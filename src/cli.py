@@ -1,3 +1,5 @@
+"""Application module `src.cli`."""
+
 from pathlib import Path
 
 import typer
@@ -10,6 +12,12 @@ app = typer.Typer(help="thereisnohr ATS CLI")
 
 @app.command()
 def ingest(path: Path) -> None:
+    """Run ingest.
+
+    Args:
+        path: Input parameter.
+
+    """
     settings = get_settings()
     configure_logging(settings.log_level)
     log = get_run_logger(__name__)
@@ -19,6 +27,9 @@ def ingest(path: Path) -> None:
 
 @app.command()
 def index() -> None:
+    """Run index.
+
+    """
     settings = get_settings()
     configure_logging(settings.log_level)
     log = get_run_logger(__name__)
@@ -28,6 +39,13 @@ def index() -> None:
 
 @app.command()
 def rank(job_id: int, top_k: int = 5) -> None:
+    """Run rank.
+
+    Args:
+        job_id: Input parameter.
+        top_k: Input parameter.
+
+    """
     settings = get_settings()
     configure_logging(settings.log_level)
     log = get_run_logger(__name__)

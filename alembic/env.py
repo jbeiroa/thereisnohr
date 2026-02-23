@@ -1,3 +1,5 @@
+"""Alembic migration environment configuration."""
+
 from logging.config import fileConfig
 
 from alembic import context
@@ -15,6 +17,9 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    """Run run migrations offline.
+
+    """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -28,6 +33,9 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run run migrations online.
+
+    """
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

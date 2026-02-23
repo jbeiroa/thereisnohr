@@ -1,3 +1,5 @@
+"""Notebook helper utilities."""
+
 from pathlib import Path
 
 
@@ -21,4 +23,10 @@ def list_pdfs(directory: Path | None = None) -> list[Path]:
 
 
 def print_checkpoint(label: str) -> None:
+    """Run print checkpoint.
+
+    Args:
+        label: Input parameter.
+
+    """
     print(f"[checkpoint] {label}")

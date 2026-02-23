@@ -1,3 +1,5 @@
+"""Application module `thereisnohr.data.handler`."""
+
 import re
 from dataclasses import dataclass
 from typing import List, Tuple

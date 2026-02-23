@@ -1,3 +1,5 @@
+"""Application module `src.core.config`."""
+
 from functools import lru_cache
 from pathlib import Path
 
@@ -6,6 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Represents Settings."""
+
     app_name: str = "thereisnohr"
     environment: str = "dev"
     log_level: str = "INFO"
@@ -42,4 +46,10 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """Get settings.
+
+    Returns:
+        object: Computed result.
+
+    """
     return Settings()

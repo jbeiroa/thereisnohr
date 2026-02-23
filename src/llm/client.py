@@ -1,3 +1,5 @@
+"""Application module `src.llm.client`."""
+
 import json
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
@@ -11,6 +13,8 @@ SchemaModelT = TypeVar("SchemaModelT", bound=BaseModel)
 
 
 class LLMClient(ABC):
+    """Represents LLMClient."""
+
     @abstractmethod
     def generate_structured(
         self,
@@ -33,7 +37,17 @@ class LLMClient(ABC):
 
 
 class LiteLLMClient(LLMClient):
+    """Represents LiteLLMClient."""
+
     def __init__(self, registry: ModelAliasRegistry, *, timeout_seconds: float, max_retries: int) -> None:
+        """Initialize the instance.
+
+        Args:
+            registry: Input parameter.
+            timeout_seconds: Input parameter.
+            max_retries: Input parameter.
+
+        """
         self._registry = registry
         self._timeout_seconds = timeout_seconds
         self._max_retries = max_retries
@@ -47,6 +61,19 @@ class LiteLLMClient(LLMClient):
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> SchemaModelT:
+        """Run generate structured.
+
+        Args:
+            prompt: Input parameter.
+            schema: Input parameter.
+            model_alias: Input parameter.
+            temperature: Input parameter.
+            max_tokens: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         from litellm import completion
 
         alias = self._registry.get(model_alias)
@@ -89,6 +116,16 @@ class LiteLLMClient(LLMClient):
         )
 
     def embed(self, texts: list[str], embedding_model_alias: str) -> list[list[float]]:
+        """Run embed.
+
+        Args:
+            texts: Input parameter.
+            embedding_model_alias: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         from litellm import embedding
 
         if not texts:
@@ -112,6 +149,15 @@ class LiteLLMClient(LLMClient):
 
 
 def _extract_text(response: Any) -> str:
+    """Helper for  extract text.
+
+    Args:
+        response: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     payload = _coerce_mapping(response)
     choices = payload.get("choices")
     if not isinstance(choices, list) or not choices:
@@ -136,6 +182,15 @@ def _extract_text(response: Any) -> str:
 
 
 def _coerce_mapping(response: Any) -> Mapping[str, Any]:
+    """Helper for  coerce mapping.
+
+    Args:
+        response: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     if isinstance(response, Mapping):
         return response
     if hasattr(response, "model_dump"):

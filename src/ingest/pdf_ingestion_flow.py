@@ -1,3 +1,5 @@
+"""Application module `src.ingest.pdf_ingestion_flow`."""
+
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,6 +17,8 @@ from src.storage.db import get_session
 
 @IngestionTelemetryMutator()
 class ResumePdfIngestionFlow(FlowSpec):
+    """Represents ResumePdfIngestionFlow."""
+
     input_dir = Parameter(
         "input-dir",
         help="Directory containing PDF resumes.",
@@ -28,6 +32,9 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def start(self):
+        """Run start.
+
+        """
         settings = get_settings()
         input_dir_path = Path(self.input_dir)
         if not input_dir_path.is_absolute():
@@ -53,6 +60,9 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def discover_files(self):
+        """Run discover files.
+
+        """
         service = IngestionService()
         files = service.discover_pdf_files(Path(self.settings["input_dir"]), self.settings["pattern"])
         self.pdf_files = [str(path) for path in files]
@@ -71,6 +81,9 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def ingest_one(self):
+        """Run ingest one.
+
+        """
         file_path = Path(self.input)
         service = IngestionService()
         session = get_session()
@@ -110,6 +123,12 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def join_results(self, inputs):
+        """Run join results.
+
+        Args:
+            inputs: Input parameter.
+
+        """
         self.results = [inp.ingest_result for inp in inputs]
         events: list[dict] = list(getattr(self, "_step_telemetry_events", []))
         for inp in inputs:
@@ -120,6 +139,9 @@ class ResumePdfIngestionFlow(FlowSpec):
     @card(type="blank", id="run_metrics")
     @step
     def end(self):
+        """Run end.
+
+        """
         if not hasattr(self, "results"):
             self.results = []
         if not hasattr(self, "step_events"):

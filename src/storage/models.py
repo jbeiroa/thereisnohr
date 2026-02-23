@@ -1,3 +1,5 @@
+"""Application module `src.storage.models`."""
+
 from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
@@ -9,6 +11,8 @@ from src.storage.db import Base
 
 
 class Candidate(Base):
+    """Represents Candidate."""
+
     __tablename__ = "candidates"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -25,6 +29,8 @@ class Candidate(Base):
 
 
 class Resume(Base):
+    """Represents Resume."""
+
     __tablename__ = "resumes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -43,6 +49,8 @@ class Resume(Base):
 
 
 class ResumeSection(Base):
+    """Represents ResumeSection."""
+
     __tablename__ = "resume_sections"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -56,6 +64,8 @@ class ResumeSection(Base):
 
 
 class JobPosting(Base):
+    """Represents JobPosting."""
+
     __tablename__ = "job_postings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -68,6 +78,8 @@ class JobPosting(Base):
 
 
 class Embedding(Base):
+    """Represents Embedding."""
+
     __tablename__ = "embeddings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -86,6 +98,8 @@ class Embedding(Base):
 
 
 class Match(Base):
+    """Represents Match."""
+
     __tablename__ = "matches"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

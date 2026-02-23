@@ -1,3 +1,5 @@
+"""Application module `thereisnohr.pipeline.main`."""
+
 import os
 from getter import Getter
 from handler import Handler
@@ -5,6 +7,12 @@ from profiler import Profiler
 from selector import Candidate_Selector
 
 def get_cvs_path():
+    """Get cvs path.
+
+    Returns:
+        object: Computed result.
+
+    """
     repo_path = os.path.dirname(os.getcwd())
     cvs_path = os.path.join(repo_path, 'cvs')
     return cvs_path

@@ -1,3 +1,5 @@
+"""Application module `src.ingest.model_fallback`."""
+
 from __future__ import annotations
 
 from typing import Literal
@@ -20,19 +22,32 @@ AllowedSectionType = Literal[
 
 
 class NameFallbackResult(BaseModel):
+    """Data model for NameFallbackResult."""
+
     name: str | None = None
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     reason: str = ""
 
 
 class SectionFallbackResult(BaseModel):
+    """Data model for SectionFallbackResult."""
+
     section_type: AllowedSectionType
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     reason: str = ""
 
 
 class LLMFallbackResolver:
+    """Represents LLMFallbackResolver."""
+
     def __init__(self, llm_client: LLMClient, *, model_alias: str = "extractor_default") -> None:
+        """Initialize the instance.
+
+        Args:
+            llm_client: Input parameter.
+            model_alias: Input parameter.
+
+        """
         self._llm = llm_client
         self._model_alias = model_alias
 
@@ -44,6 +59,18 @@ class LLMFallbackResolver:
         phones: list[str],
         language: str | None,
     ) -> NameFallbackResult:
+        """Run resolve name.
+
+        Args:
+            candidate_lines: Input parameter.
+            emails: Input parameter.
+            phones: Input parameter.
+            language: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         prompt = (
             "Extract the most likely person full name from resume header lines.\n"
             "Rules:\n"
@@ -70,6 +97,17 @@ class LLMFallbackResolver:
         content_excerpt: str,
         language: str | None,
     ) -> SectionFallbackResult:
+        """Run classify section.
+
+        Args:
+            raw_heading: Input parameter.
+            content_excerpt: Input parameter.
+            language: Input parameter.
+
+        Returns:
+            object: Computed result.
+
+        """
         prompt = (
             "Classify resume section into one of these labels only: "
             "summary, experience, education, skills, projects, certifications, contact, general.\n"

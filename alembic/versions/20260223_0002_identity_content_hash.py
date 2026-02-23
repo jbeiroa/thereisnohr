@@ -18,6 +18,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    """Run upgrade.
+
+    """
     op.add_column("resumes", sa.Column("content_hash", sa.String(length=64), nullable=True))
     op.create_index(op.f("ix_resumes_content_hash"), "resumes", ["content_hash"], unique=False)
 
@@ -51,6 +54,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Run downgrade.
+
+    """
     op.drop_index("ux_candidates_external_id_not_null", table_name="candidates")
     op.drop_index(op.f("ix_resumes_content_hash"), table_name="resumes")
     op.drop_column("resumes", "content_hash")

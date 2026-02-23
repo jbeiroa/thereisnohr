@@ -1,3 +1,5 @@
+"""Utility script for `backfill_candidate_identity_v2` workflows."""
+
 from __future__ import annotations
 
 import argparse
@@ -9,6 +11,15 @@ from src.storage.models import Candidate, Embedding, Match, Resume
 
 
 def _link_list(value: list[str] | dict | None) -> list[str]:
+    """Helper for  link list.
+
+    Args:
+        value: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     if value is None:
         return []
     if isinstance(value, list):
@@ -21,6 +32,15 @@ def _link_list(value: list[str] | dict | None) -> list[str]:
 
 
 def _group_key(candidate: Candidate) -> str | None:
+    """Helper for  group key.
+
+    Args:
+        candidate: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     email = normalize_email(candidate.email)
     if email:
         return f"email:{email}"
@@ -31,12 +51,31 @@ def _group_key(candidate: Candidate) -> str | None:
 
 
 def _candidate_rank(candidate: Candidate, resume_counts: dict[int, int]) -> tuple[float, int, int]:
+    """Helper for  candidate rank.
+
+    Args:
+        candidate: Input parameter.
+        resume_counts: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     quality = estimate_name_quality(candidate.name)
     resumes = resume_counts.get(candidate.id, 0)
     return quality, resumes, -candidate.id
 
 
 def run_backfill(*, apply: bool) -> int:
+    """Run run backfill.
+
+    Args:
+        apply: Input parameter.
+
+    Returns:
+        object: Computed result.
+
+    """
     session = get_session()
     try:
         candidates = session.query(Candidate).all()
@@ -116,6 +155,12 @@ def run_backfill(*, apply: bool) -> int:
 
 
 def main() -> int:
+    """Run main.
+
+    Returns:
+        object: Computed result.
+
+    """
     parser = argparse.ArgumentParser(description="Merge duplicate candidates using email/phone primary identity keys.")
     parser.add_argument("--apply", action="store_true", help="Persist changes. Default is dry-run.")
     args = parser.parse_args()
