@@ -85,6 +85,12 @@ uv sync --all-extras --dev
 uv run pytest -q
 ```
 
+Integration tests (ephemeral Postgres, opt-in):
+
+```bash
+uv run pytest -q -m integration
+```
+
 3. Inspect CLI commands:
 
 ```bash

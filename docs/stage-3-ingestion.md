@@ -137,6 +137,7 @@ Current automated coverage includes:
 - parser unit tests for section extraction, bilingual heading mapping, and link extraction.
 - parser rule coverage for absorption behavior (single-line non-`general` section absorbs following `general` spans).
 - ingestion service helper tests for file discovery and deterministic candidate external-id generation.
+- integration test suite (opt-in marker) for DB-backed identity/idempotency/reporting behavior.
 
 Current notebook coverage includes:
 
@@ -147,3 +148,23 @@ Current notebook coverage includes:
 
 1. Optional model-based fallback for low-confidence name extraction (Presidio/HF/GLiNER adapter).
 2. DB-backed integration tests for end-to-end ingestion validation (identity/idempotency/reporting).
+
+## 8) Integration test commands
+
+Run default fast suite (integration excluded by marker):
+
+```bash
+uv run pytest -q
+```
+
+Run integration suite:
+
+```bash
+uv run pytest -q -m integration
+```
+
+Run only ingestion integration tests:
+
+```bash
+uv run pytest -q tests/integration/test_ingest_service_integration.py -m integration
+```
