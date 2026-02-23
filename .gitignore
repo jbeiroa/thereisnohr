@@ -1,34 +1,53 @@
-.ipynb_checkpoints
-
+# OS / editor artifacts
 .DS_Store
 
-.mypy_cache
+# Python runtime/build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
 
-__pycache__
+# Virtual environments
+.venv/
+venv/
+.env
+.env.*
+!.env.example
 
-.venv
+# Python tool caches / reports
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
 
-adapters
+# Jupyter artifacts
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 
-finetune_data
+# Metaflow artifacts
+.metaflow/
 
-mlx_model
+# Local planning artifacts
+.plans/
 
-old_ft_data
-
-fused_model
-
+# Project-specific local model/training artifacts
+adapters/
 finetune_data/
+mlx_model/
+old_ft_data/
+fused_model/
 
-# Ignore model weights
-**.safetensors
-**.bin
-**.pt
-**.ckpt
+# Model weights
+**/*.safetensors
+**/*.bin
+**/*.pt
+**/*.ckpt
 
-# Ignore Hugging Face cache
+# Hugging Face / transformer caches
 **/cache/
 **/huggingface/
 **/transformers_cache/
-
-.plans
