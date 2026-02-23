@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     model_aliases_path: Path = Path("./config/model_aliases.yaml")
 
     database_url: str = Field(
-        default="postgresql+psycopg://postgres:postgres@localhost:5432/thereisnohr"
+        default="postgresql+psycopg://postgres:postgres@localhost:5433/thereisnohr_stage1"
     )
 
     embedding_model_alias: str = "embedding_default"

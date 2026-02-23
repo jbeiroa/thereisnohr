@@ -1,4 +1,11 @@
 from dataclasses import dataclass
+from typing import TypedDict
+
+
+class SectionDiagnostics(TypedDict, total=False):
+    diagnostic_flags: list[str]
+    confidence_inputs: dict
+    recategorization_candidate: dict | None
 
 
 @dataclass
@@ -15,7 +22,7 @@ class SectionItem:
     normalized_type: str
     content: str
     confidence: float
-    signals: dict | None
+    signals: SectionDiagnostics | dict | None
 
 
 @dataclass(frozen=True)
@@ -24,6 +31,16 @@ class IdentitySignals:
     emails: str | list[str]
     phones: str | list[str]
     links: list[str]
+
+
+@dataclass(frozen=True)
+class IdentityCandidate:
+    name: str | None
+    email: str | None
+    phone: str | None
+    identity_key: str
+    confidence: float
+    signals: dict
 
 
 @dataclass(frozen=True)

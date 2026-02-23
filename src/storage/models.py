@@ -30,6 +30,7 @@ class Resume(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     candidate_id: Mapped[int] = mapped_column(ForeignKey("candidates.id"), nullable=False)
     source_file: Mapped[str] = mapped_column(String(512), nullable=False)
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
     parsed_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     language: Mapped[str | None] = mapped_column(String(16), nullable=True)

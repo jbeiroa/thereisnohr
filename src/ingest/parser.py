@@ -251,7 +251,11 @@ class PDFResumeParser:
                     normalized_type=span.title,
                     content=content,
                     confidence=1.0 if span.title != "general" else 0.5,
-                    signals=None,
+                    signals=self._build_section_signals(
+                        normalized_type=span.title,
+                        raw_heading=span.raw_heading,
+                        content=content,
+                    ),
                 )
             )
 
@@ -265,7 +269,11 @@ class PDFResumeParser:
                         normalized_type="general",
                         content=fallback,
                         confidence=0.3,
-                        signals=None,
+                        signals=self._build_section_signals(
+                            normalized_type="general",
+                            raw_heading="",
+                            content=fallback,
+                        ),
                     )
                 )
 
@@ -397,6 +405,70 @@ class PDFResumeParser:
                 return value
 
         return "general"
+
+    def _build_section_signals(
+        self,
+        *,
+        normalized_type: str,
+        raw_heading: str,
+        content: str,
+    ) -> dict:
+        flags: list[str] = []
+        heading_mapped_to_general = bool(raw_heading.strip()) and normalized_type == "general"
+        if heading_mapped_to_general:
+            flags.append("heading_unknown")
+        if len(content.split()) < 8:
+            flags.append("short_content")
+        if self._looks_like_contact_block(content):
+            flags.append("looks_like_contact_block")
+
+        recat = self._suggest_recategorization(
+            normalized_type=normalized_type,
+            content=content,
+            has_contact_hint="looks_like_contact_block" in flags,
+        )
+
+        confidence_inputs = {
+            "word_count": len(content.split()),
+            "heading_mapped_to_general": heading_mapped_to_general,
+        }
+
+        return {
+            "diagnostic_flags": flags,
+            "confidence_inputs": confidence_inputs,
+            "recategorization_candidate": recat,
+        }
+
+    def _looks_like_contact_block(self, content: str) -> bool:
+        lowered = content.lower()
+        has_email = bool(re.search(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}", lowered))
+        has_phone = bool(re.search(r"(?:\+?\d[\d\s().\-/]{6,}\d)", content))
+        return has_email or has_phone
+
+    def _suggest_recategorization(
+        self,
+        *,
+        normalized_type: str,
+        content: str,
+        has_contact_hint: bool,
+    ) -> dict | None:
+        lowered = content.lower()
+        if normalized_type != "general":
+            return None
+
+        if has_contact_hint:
+            return {"section_type": "contact", "confidence": 0.8}
+
+        keyword_buckets = {
+            "skills": ["python", "sql", "java", "skills", "technologies", "stack"],
+            "experience": ["experience", "responsible", "led", "worked", "managed"],
+            "contact": ["email", "phone", "linkedin", "github"],
+        }
+        for target, keywords in keyword_buckets.items():
+            hits = sum(1 for keyword in keywords if keyword in lowered)
+            if hits >= 2:
+                return {"section_type": target, "confidence": 0.65}
+        return None
 
     def _absorb_generals_into_single_line_sections(
             self,

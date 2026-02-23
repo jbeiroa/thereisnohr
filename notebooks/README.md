@@ -3,15 +3,13 @@
 This folder contains non-legacy notebooks for isolated experimentation and smoke validation.
 
 ## Execution order
-1. `parsers_testing.ipynb`
-2. `ingestion_service_testing.ipynb`
-3. `repositories_smoke_testing.ipynb`
-4. `llm_registry_testing.ipynb`
+1. `ingestion_service_testing.ipynb`
+2. `repositories_smoke_testing.ipynb`
+3. `llm_registry_testing.ipynb`
 
 ## Notebook purposes
-- `parsers_testing.ipynb`: parser QA (precleaning, heading spans, canonical mapping, absorption behavior, links).
-- `ingestion_service_testing.ipynb`: service-level checks without Metaflow.
-- `repositories_smoke_testing.ipynb`: repository persistence smoke checks against dev DB.
+- `ingestion_service_testing.ipynb`: service-level checks without Metaflow, including deterministic identity extraction/content-hash checks and section diagnostics inspection.
+- `repositories_smoke_testing.ipynb`: repository persistence smoke checks against dev DB, including identity-key upsert and content-hash roundtrip behavior.
 - `llm_registry_testing.ipynb`: alias registry checks, plus optional credential-gated live calls.
 
 ## Prerequisites
@@ -22,9 +20,8 @@ This folder contains non-legacy notebooks for isolated experimentation and smoke
 - Optional provider credentials (for live LLM checks).
 
 ## Pass criteria
-- Parser notebook: absorption and link extraction assertions pass; section output is sensible for selected samples.
-- Ingestion service notebook: discovery ordering, deterministic helper checks, and parse-through-service assertion pass.
-- Repository notebook: candidate idempotency, resume roundtrip, and section persistence assertions pass.
+- Ingestion service notebook: discovery ordering, parse-through-service assertions, deterministic identity/content-hash checks, and section diagnostics assertions pass.
+- Repository notebook: candidate identity-key idempotency, resume source/content-hash roundtrip, and section diagnostics metadata persistence assertions pass.
 - LLM registry notebook: expected aliases resolve, unknown alias path raises expected error, live checks optional.
 
 ## Troubleshooting

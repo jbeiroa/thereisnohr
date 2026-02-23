@@ -42,12 +42,13 @@ Implemented now:
 - parser precleaning + heading span detection + canonical section mapping.
 - mandatory section behavior for noisy conversions: absorb consecutive `general` spans into single-line non-`general` sections.
 - parser output contract with `sections`, `section_items`, and extracted `links`.
+- deterministic content-based candidate identity resolution (`name`/`email`/`phone` + identity confidence diagnostics).
+- resume content-hash idempotency checks in ingestion.
 - Stage 3 experimentation notebook suite under `notebooks/` (parser QA, ingestion service checks, repository smoke checks, and LLM registry checks).
 
 Not implemented yet (planned in Stage 3/4+):
 
-- stronger candidate identity resolution from resume content (currently file-path heuristic),
-- content-hash-based idempotency (currently `source_file` duplicate skip),
+- optional model-based fallback for low-confidence name extraction,
 - run-level ingestion metrics/reporting artifacts in Metaflow,
 - optional OCR fallback for scanned PDFs (explicitly not prioritized right now),
 - retrieval/ranking logic and score explanations,
@@ -116,7 +117,7 @@ Copy `.env.example` to `.env` and adjust values:
 APP_NAME=thereisnohr
 ENVIRONMENT=dev
 LOG_LEVEL=INFO
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/thereisnohr
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5433/thereisnohr_stage1
 EMBEDDING_MODEL_ALIAS=embedding_default
 SUMMARIZER_MODEL_ALIAS=summarizer_default
 ```

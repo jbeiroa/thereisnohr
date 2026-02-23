@@ -64,21 +64,25 @@ The pre-reengineering code under `thereisnohr/` was analyzed for reuse.
 For each PDF:
 
 1. Candidate
-- External ID is derived deterministically from file path hash.
+- External ID is derived deterministically from content identity signals (`email`, `phone`, `name`) as `candidate:v1:*`.
 - Candidate record is upserted by `external_id`.
+- Fallback identity for resumes with no detectable signals uses `resume_content:*`.
 
 2. Resume
 - Stored with full raw markdown text in `resumes.raw_text`.
+- Content hash stored in `resumes.content_hash` for idempotency.
 - Parsed artifacts stored in `resumes.parsed_json`:
   - `clean_text`
   - `links`
   - `parser_version`
   - `section_names`
+  - `identity` (resolved signals + confidence + diagnostics)
 - Language stored in `resumes.language`.
 
 3. Resume sections
 - One row per extracted section in `resume_sections`.
 - Includes token count and parser version metadata.
+- Includes confidence/diagnostic metadata (`section_confidence`, flags, recategorization candidate).
 
 Parser entity contract also includes richer in-memory output used for experimentation:
 - `ParsedResume.sections`
@@ -97,12 +101,18 @@ CLI helper:
 uv run ats ingest-flow-help
 ```
 
+Backfill utility (dry-run by default):
+
+```bash
+uv run python scripts/backfill_identity.py
+uv run python scripts/backfill_identity.py --apply
+```
+
 ## 5) Current constraints
 
-- Candidate identity currently inferred from file name/path hash (temporary heuristic).
-- No content-hash idempotency yet (duplicates handled by `source_file` only).
+- Optional model-based NER fallback is not enabled by default (rules-first extraction only).
 - No run-level ingestion metrics artifact yet (only summary prints in flow end step).
-- No confidence scoring persisted per section yet.
+- Section diagnostics are persisted, but recategorization remains advisory metadata only.
 - OCR fallback for scanned PDFs is currently de-prioritized and out of active Stage 3 scope.
 - Metaflow execution is local process mode by default.
 
@@ -121,7 +131,5 @@ Current notebook coverage includes:
 
 ## 7) Next expected Stage 3 increments
 
-1. Stronger candidate identity extraction (email/phone/name from content).
-2. Persisted section confidence metadata and normalization diagnostics.
-3. Idempotent ingestion via content hash (not only source file path).
+1. Optional model-based fallback for low-confidence name extraction (Presidio/HF/GLiNER adapter).
 4. Ingestion metrics and structured run-level telemetry.

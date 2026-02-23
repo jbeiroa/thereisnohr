@@ -84,7 +84,11 @@ class ResumePdfIngestionFlow(FlowSpec):
         if not hasattr(self, "results"):
             self.results = []
         ingested = sum(1 for result in self.results if result.get("status") == "ingested")
-        skipped = sum(1 for result in self.results if result.get("status") == "skipped_existing_resume")
+        skipped = sum(
+            1
+            for result in self.results
+            if result.get("status") in {"skipped_existing_resume", "skipped_existing_content"}
+        )
         errors = sum(1 for result in self.results if result.get("status") == "error")
 
         print(f"Resume ingestion completed: ingested={ingested}, skipped={skipped}, errors={errors}")

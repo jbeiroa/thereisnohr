@@ -82,3 +82,17 @@ def test_parse_markdown_extracts_links_in_output() -> None:
     )
 
     assert parsed.links == ["https://example.com/project"]
+
+
+def test_parse_markdown_populates_section_diagnostics() -> None:
+    parser = PDFResumeParser()
+    parsed = parser.parse_markdown(
+        markdown="# Unknown Heading\njohn.doe@example.com\n+1 (415) 555-0100",
+        source_file="resume.pdf",
+    )
+
+    assert parsed.section_items
+    item = parsed.section_items[0]
+    assert item.signals is not None
+    assert "diagnostic_flags" in item.signals
+    assert "confidence_inputs" in item.signals

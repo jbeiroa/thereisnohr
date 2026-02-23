@@ -4,6 +4,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from src.ingest.identity import compute_content_hash, extract_identity
 from src.ingest.parser import PDFResumeParser
 from src.ingest.entities import ParsedResume
 from src.storage.repositories import CandidateRepository, ResumeRepository, ResumeSectionRepository
@@ -37,6 +38,7 @@ class IngestionService:
 
     def ingest_pdf(self, path: Path, session: Session) -> IngestionResult:
         parsed = self.parse_pdf(path)
+        resume_content_hash = compute_content_hash(parsed.clean_text)
 
         candidate_repo = CandidateRepository(session)
         resume_repo = ResumeRepository(session)
@@ -52,34 +54,62 @@ class IngestionService:
                 section_count=0,
             )
 
-        candidate_external_id = self._build_candidate_external_id(path)
-        candidate_name = self._infer_candidate_name(path)
-        candidate, _ = candidate_repo.get_or_create_by_external_id(
-            external_id=candidate_external_id,
-            name=candidate_name,
+        existing_content = resume_repo.get_by_content_hash(resume_content_hash)
+        if existing_content is not None:
+            return IngestionResult(
+                status="skipped_existing_content",
+                source_file=parsed.source_file,
+                candidate_id=existing_content.candidate_id,
+                resume_id=existing_content.id,
+                section_count=0,
+            )
+
+        identity = extract_identity(parsed)
+        candidate, _ = candidate_repo.get_or_create_by_identity_key(
+            identity_key=identity.identity_key,
+            name=identity.name,
+            email=identity.email,
+            phone=identity.phone,
         )
 
         resume = resume_repo.create(
             candidate_id=candidate.id,
             source_file=parsed.source_file,
+            content_hash=resume_content_hash,
             raw_text=parsed.raw_text,
             parsed_json={
                 "clean_text": parsed.clean_text,
                 "links": parsed.links,
                 "parser_version": parsed.parser_version,
                 "section_names": list(parsed.sections.keys()),
+                "identity": {
+                    "identity_key": identity.identity_key,
+                    "name": identity.name,
+                    "email": identity.email,
+                    "phone": identity.phone,
+                    "confidence": identity.confidence,
+                    "signals": identity.signals,
+                },
             },
             language=parsed.language,
         )
 
         section_count = 0
-        for section_type, content in parsed.sections.items():
+        for item in parsed.section_items:
+            signals = item.signals or {}
+            recat = signals.get("recategorization_candidate")
             section_repo.create(
                 resume_id=resume.id,
-                section_type=section_type,
-                content=content,
-                metadata_json={"parser_version": parsed.parser_version},
-                tokens=len(content.split()),
+                section_type=item.normalized_type,
+                content=item.content,
+                metadata_json={
+                    "parser_version": parsed.parser_version,
+                    "section_confidence": item.confidence,
+                    "diagnostic_flags": signals.get("diagnostic_flags", []),
+                    "confidence_inputs": signals.get("confidence_inputs", {}),
+                    "recategorization_candidate": recat,
+                },
+                tokens=len(item.content.split()),
             )
             section_count += 1
 
