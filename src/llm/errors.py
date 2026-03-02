@@ -1,4 +1,4 @@
-"""Application module `src.llm.errors`."""
+"""LLM error taxonomy and provider-exception normalization."""
 
 from functools import lru_cache
 

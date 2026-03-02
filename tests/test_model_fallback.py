@@ -10,32 +10,9 @@ class _FailingLLM:
         self._error = error
 
     def generate_structured(self, *args, **kwargs):  # noqa: ANN002, ANN003
+        _ = args
+        _ = kwargs
         raise self._error
-
-    def embed(self, texts, embedding_model_alias):  # noqa: ANN001
-        _ = texts
-        _ = embedding_model_alias
-        return []
-
-    async def agenerate_structured(self, *args, **kwargs):  # noqa: ANN002, ANN003
-        _ = args
-        _ = kwargs
-        raise NotImplementedError
-
-    async def aembed(self, texts, embedding_model_alias):  # noqa: ANN001
-        _ = texts
-        _ = embedding_model_alias
-        raise NotImplementedError
-
-    def generate_structured_with_meta(self, *args, **kwargs):  # noqa: ANN002, ANN003
-        _ = args
-        _ = kwargs
-        raise NotImplementedError
-
-    def embed_with_meta(self, texts, embedding_model_alias):  # noqa: ANN001
-        _ = texts
-        _ = embedding_model_alias
-        raise NotImplementedError
 
 
 def test_resolve_name_coerces_rate_limit_to_app_error() -> None:

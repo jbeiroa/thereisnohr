@@ -1,4 +1,4 @@
-"""Application module `src.llm.client`."""
+"""LLM client interface and LiteLLM implementation."""
 
 import json
 from abc import ABC, abstractmethod
@@ -13,13 +13,12 @@ from src.llm.errors import (
     LLMStructuredOutputError,
 )
 from src.llm.registry import ModelAliasRegistry
-from src.llm.types import LLMCallMetadata
 
 SchemaModelT = TypeVar("SchemaModelT", bound=BaseModel)
 
 
 class LLMClient(ABC):
-    """Represents LLMClient."""
+    """Minimal client contract used by ingestion and fallback logic."""
 
     @abstractmethod
     def generate_structured(
@@ -41,59 +40,11 @@ class LLMClient(ABC):
     ) -> list[list[float]]:
         """Generate embeddings for one or many text inputs."""
 
-    @abstractmethod
-    async def agenerate_structured(
-        self,
-        prompt: str,
-        schema: type[SchemaModelT],
-        model_alias: str,
-        *,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-    ) -> SchemaModelT:
-        """Generate and validate structured output against a schema asynchronously."""
-
-    @abstractmethod
-    async def aembed(
-        self,
-        texts: list[str],
-        embedding_model_alias: str,
-    ) -> list[list[float]]:
-        """Generate embeddings for one or many text inputs asynchronously."""
-
-    @abstractmethod
-    def generate_structured_with_meta(
-        self,
-        prompt: str,
-        schema: type[SchemaModelT],
-        model_alias: str,
-        *,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-    ) -> tuple[SchemaModelT, LLMCallMetadata]:
-        """Generate structured output and return call metadata."""
-
-    @abstractmethod
-    def embed_with_meta(
-        self,
-        texts: list[str],
-        embedding_model_alias: str,
-    ) -> tuple[list[list[float]], LLMCallMetadata]:
-        """Generate embeddings and return call metadata."""
-
 
 class LiteLLMClient(LLMClient):
-    """Represents LiteLLMClient."""
+    """LiteLLM-backed implementation of the minimal LLM client contract."""
 
     def __init__(self, registry: ModelAliasRegistry, *, timeout_seconds: float, max_retries: int) -> None:
-        """Initialize the instance.
-
-        Args:
-            registry: Input parameter.
-            timeout_seconds: Input parameter.
-            max_retries: Input parameter.
-
-        """
         self._registry = registry
         self._timeout_seconds = timeout_seconds
         self._max_retries = max_retries
@@ -107,19 +58,7 @@ class LiteLLMClient(LLMClient):
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> SchemaModelT:
-        """Run generate structured.
-
-        Args:
-            prompt: Input parameter.
-            schema: Input parameter.
-            model_alias: Input parameter.
-            temperature: Input parameter.
-            max_tokens: Input parameter.
-
-        Returns:
-            object: Computed result.
-
-        """
+        """Generate validated JSON output for the given prompt and schema."""
         from litellm import completion
 
         alias = self._registry.get(model_alias)
@@ -170,16 +109,7 @@ class LiteLLMClient(LLMClient):
         )
 
     def embed(self, texts: list[str], embedding_model_alias: str) -> list[list[float]]:
-        """Run embed.
-
-        Args:
-            texts: Input parameter.
-            embedding_model_alias: Input parameter.
-
-        Returns:
-            object: Computed result.
-
-        """
+        """Generate embeddings using the configured alias."""
         from litellm import embedding
 
         if not texts:
@@ -201,71 +131,9 @@ class LiteLLMClient(LLMClient):
             vectors.append([float(value) for value in embedding_values])
         return vectors
 
-    async def agenerate_structured(
-        self,
-        prompt: str,
-        schema: type[SchemaModelT],
-        model_alias: str,
-        *,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-    ) -> SchemaModelT:
-        """Boilerplate async structured generation stub for future implementation."""
-        _ = prompt
-        _ = schema
-        _ = model_alias
-        _ = temperature
-        _ = max_tokens
-        raise NotImplementedError("Async structured generation is not implemented yet.")
-
-    async def aembed(
-        self,
-        texts: list[str],
-        embedding_model_alias: str,
-    ) -> list[list[float]]:
-        """Boilerplate async embedding stub for future implementation."""
-        _ = texts
-        _ = embedding_model_alias
-        raise NotImplementedError("Async embedding generation is not implemented yet.")
-
-    def generate_structured_with_meta(
-        self,
-        prompt: str,
-        schema: type[SchemaModelT],
-        model_alias: str,
-        *,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-    ) -> tuple[SchemaModelT, LLMCallMetadata]:
-        """Boilerplate metadata wrapper stub for future implementation."""
-        _ = prompt
-        _ = schema
-        _ = model_alias
-        _ = temperature
-        _ = max_tokens
-        raise NotImplementedError("Structured generation with metadata is not implemented yet.")
-
-    def embed_with_meta(
-        self,
-        texts: list[str],
-        embedding_model_alias: str,
-    ) -> tuple[list[list[float]], LLMCallMetadata]:
-        """Boilerplate metadata wrapper stub for future implementation."""
-        _ = texts
-        _ = embedding_model_alias
-        raise NotImplementedError("Embedding generation with metadata is not implemented yet.")
-
 
 def _extract_text(response: Any) -> str:
-    """Helper for  extract text.
-
-    Args:
-        response: Input parameter.
-
-    Returns:
-        object: Computed result.
-
-    """
+    """Extract message text from provider completion payloads."""
     payload = _coerce_mapping(response)
     choices = payload.get("choices")
     if not isinstance(choices, list) or not choices:
@@ -290,15 +158,7 @@ def _extract_text(response: Any) -> str:
 
 
 def _coerce_mapping(response: Any) -> Mapping[str, Any]:
-    """Helper for  coerce mapping.
-
-    Args:
-        response: Input parameter.
-
-    Returns:
-        object: Computed result.
-
-    """
+    """Normalize a LiteLLM response object into a dictionary-like payload."""
     if isinstance(response, Mapping):
         return response
     if hasattr(response, "model_dump"):
