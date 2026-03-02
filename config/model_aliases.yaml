@@ -1,9 +1,13 @@
 summarizer_default:
-  default_model: openai/gpt-4o-mini
+  default_model: openai/gpt-4o-minii
   default_litellm_params:
     temperature: 0.2
     max_tokens: 900
-  fallbacks: []
+  fallbacks:
+    - model: ollama/llama3.2:3b
+      litellm_params:
+        temperature: 0.2
+        max_tokens: 900
   fallback_policy:
     num_retries: 2
 
@@ -12,7 +16,11 @@ extractor_default:
   default_litellm_params:
     temperature: 0.0
     max_tokens: 1200
-  fallbacks: []
+  fallbacks:
+      - model: ollama/llama3.2:3b
+        litellm_params:
+          temperature: 0.2
+          max_tokens: 900
   fallback_policy:
     num_retries: 2
 
@@ -21,13 +29,19 @@ explainer_default:
   default_litellm_params:
     temperature: 0.1
     max_tokens: 1200
-  fallbacks: []
+  fallbacks:
+      - model: ollama/llama3.2:3b
+        litellm_params:
+          temperature: 0.2
+          max_tokens: 900
   fallback_policy:
     num_retries: 2
 
 embedding_default:
-  default_model: text-embedding-3-small
+  default_model: openai/text-embedding-3-smalll
   default_litellm_params: {}
-  fallbacks: []
+  fallbacks:
+    - model: ollama/embeddinggemma
+      litellm_params: {}
   fallback_policy:
     num_retries: 1

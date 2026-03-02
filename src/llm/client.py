@@ -191,6 +191,7 @@ class LiteLLMClient(LLMClient):
             Exception: Provider exceptions after normalization where applicable.
         """
         router = self._router_for_alias(model_alias)
+        alias_config = self._registry.get(model_alias)
         start = time.perf_counter()
 
         call_kwargs: dict[str, Any] = {}
@@ -213,6 +214,7 @@ class LiteLLMClient(LLMClient):
                     {"role": "user", "content": prompt},
                 ],
                 timeout=self._timeout_seconds,
+                fallbacks=alias_config.get_fallback_names(model_alias),
                 **call_kwargs,
             )
         except Exception as exc:
@@ -250,12 +252,14 @@ class LiteLLMClient(LLMClient):
             return [], LLMCallMetadata(model_alias=embedding_model_alias)
 
         router = self._router_for_alias(embedding_model_alias)
+        alias_config = self._registry.get(embedding_model_alias)
         start = time.perf_counter()
         try:
             response = router.embedding(
                 model=embedding_model_alias,
                 input=texts,
                 timeout=self._timeout_seconds,
+                fallbacks=alias_config.get_fallback_names(embedding_model_alias),
             )
         except Exception as exc:
             normalized = coerce_provider_exception(exc)
@@ -291,6 +295,7 @@ class LiteLLMClient(LLMClient):
     ) -> tuple[SchemaModelT, LLMCallMetadata]:
         """Async variant of structured generation with metadata."""
         router = self._router_for_alias(model_alias)
+        alias_config = self._registry.get(model_alias)
         start = time.perf_counter()
 
         call_kwargs: dict[str, Any] = {}
@@ -313,6 +318,7 @@ class LiteLLMClient(LLMClient):
                     {"role": "user", "content": prompt},
                 ],
                 timeout=self._timeout_seconds,
+                fallbacks=alias_config.get_fallback_names(model_alias),
                 **call_kwargs,
             )
         except Exception as exc:
@@ -350,12 +356,14 @@ class LiteLLMClient(LLMClient):
             return [], LLMCallMetadata(model_alias=embedding_model_alias)
 
         router = self._router_for_alias(embedding_model_alias)
+        alias_config = self._registry.get(embedding_model_alias)
         start = time.perf_counter()
         try:
             response = await router.aembedding(
                 model=embedding_model_alias,
                 input=texts,
                 timeout=self._timeout_seconds,
+                fallbacks=alias_config.get_fallback_names(embedding_model_alias),
             )
         except Exception as exc:
             normalized = coerce_provider_exception(exc)

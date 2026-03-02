@@ -62,7 +62,7 @@ class FallbackPolicy:
             in config, defaults to the number of configured fallback routes.
     """
 
-    default_num_retries: int = 1
+    num_retries: int = 1
     max_fallbacks: int | None = None
 
     @classmethod
@@ -80,7 +80,7 @@ class FallbackPolicy:
         Returns:
             FallbackPolicy: Validated fallback policy for the alias.
         """
-        num_retries = data.get("num_retries", cls.default_num_retries)
+        num_retries = data.get("num_retries", cls.num_retries)
         if not isinstance(num_retries, int) or num_retries < 0:
             raise ValueError("'fallback_policy.num_retries' must be a non-negative integer")
 
@@ -168,12 +168,14 @@ class ModelAlias:
     def to_router_model_list(self, alias_name: str) -> list[dict[str, Any]]:
         """Compiles this alias into ordered LiteLLM Router `model_list` entries.
 
+        Each route gets a unique `model_name` within the Router context to
+        allow explicit fallback routing by group name.
+
         Args:
-            alias_name: Alias key used as Router `model_name`.
+            alias_name: Base alias key used for the default route.
 
         Returns:
-            list[dict[str, Any]]: Ordered route entries where the first element
-                is the default route followed by fallbacks.
+            list[dict[str, Any]]: Router-compatible model configuration list.
         """
         rows: list[dict[str, Any]] = [
             {
@@ -184,10 +186,10 @@ class ModelAlias:
                 },
             }
         ]
-        for route in self.fallbacks:
+        for i, route in enumerate(self.fallbacks):
             rows.append(
                 {
-                    "model_name": alias_name,
+                    "model_name": f"{alias_name}_fallback_{i}",
                     "litellm_params": {
                         "model": route.model,
                         **route.litellm_params,
@@ -195,6 +197,17 @@ class ModelAlias:
                 }
             )
         return rows
+
+    def get_fallback_names(self, alias_name: str) -> list[str]:
+        """Returns the list of unique fallback group names for this alias.
+
+        Args:
+            alias_name: Base alias key.
+
+        Returns:
+            list[str]: Ordered list of fallback model group names.
+        """
+        return [f"{alias_name}_fallback_{i}" for i in range(len(self.fallbacks))]
 
 
 @dataclass(frozen=True)

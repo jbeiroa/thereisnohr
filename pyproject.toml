@@ -37,6 +37,7 @@ dependencies = [
   "jupyter>=1.1.1",
   "pymupdf-layout>=1.27.1",
   "ipython>=9.10.0",
+  "dotenv>=0.9.9",
 ]
 
 [project.optional-dependencies]
