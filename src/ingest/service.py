@@ -1,4 +1,4 @@
-"""Application module `src.ingest.service`."""
+"""Coordinates parsing, identity resolution, and persistence for PDF resume ingestion."""
 
 import hashlib
 from dataclasses import dataclass
@@ -18,7 +18,7 @@ from src.storage.repositories import CandidateRepository, ResumeRepository, Resu
 
 @dataclass(frozen=True)
 class IngestionResult:
-    """Represents IngestionResult."""
+    """Outcome summary returned after processing one source resume."""
 
     status: str
     source_file: str
@@ -31,7 +31,7 @@ class IngestionResult:
 
 @dataclass
 class IngestionService:
-    """Represents IngestionService."""
+    """Coordinates parsing, identity resolution, and persistence for resumes."""
 
     parser: PDFResumeParser | None = None
     llm_client: LLMClient | None = None
@@ -43,8 +43,7 @@ class IngestionService:
     section_model_max_chars: int | None = None
 
     def __post_init__(self) -> None:
-        """Helper for   post init  .
-
+        """Initializes default runtime dependencies and configuration values after dataclass construction.
         """
         settings = get_settings()
         if self.parser is None:
@@ -63,43 +62,43 @@ class IngestionService:
             self.section_model_max_chars = settings.ingest_section_model_max_chars
 
     def discover_pdf_files(self, input_dir: Path, pattern: str = "*.pdf") -> list[Path]:
-        """Run discover pdf files.
+        """Recursively discovers PDF files that should enter ingestion.
 
         Args:
-            input_dir: Input parameter.
-            pattern: Input parameter.
+            input_dir (Path): Root directory scanned for candidate PDF files.
+            pattern (str): File glob used during recursive discovery.
 
         Returns:
-            object: Computed result.
+            list[Path]: Sorted list of files that match the supplied pattern.
 
+        Raises:
+            FileNotFoundError: Raised when validation or execution constraints are violated.
         """
         if not input_dir.exists():
             raise FileNotFoundError(f"Input directory does not exist: {input_dir}")
         return sorted(path for path in input_dir.rglob(pattern) if path.is_file())
 
     def parse_pdf(self, path: Path) -> ParsedResume:
-        """Run parse pdf.
+        """Parses one PDF file into the normalized ``ParsedResume`` contract.
 
         Args:
-            path: Input parameter.
+            path (Path): Filesystem path of the file being parsed or ingested.
 
         Returns:
-            object: Computed result.
-
+            ParsedResume: Parsed text, sections, language, and link artifacts.
         """
         assert self.parser is not None
         return self.parser.parse(path)
 
     def ingest_pdf(self, path: Path, session: Session) -> IngestionResult:
-        """Run ingest pdf.
+        """Ingests one resume file into candidate/resume/section tables.
 
         Args:
-            path: Input parameter.
-            session: Input parameter.
+            path (Path): Filesystem path of the file being parsed or ingested.
+            session (Session): Database session used for repository operations in this call.
 
         Returns:
-            object: Computed result.
-
+            IngestionResult: Final status with key IDs and confidence metrics.
         """
         parsed = self.parse_pdf(path)
         resume_content_hash = compute_content_hash(parsed.clean_text)
@@ -201,15 +200,14 @@ class IngestionService:
         )
 
     def _build_section_payloads(self, *, parsed: ParsedResume, resume_id: int) -> list[dict]:
-        """Helper for  build section payloads.
+        """Builds normalized section payloads ready for database persistence.
 
         Args:
-            parsed: Input parameter.
-            resume_id: Input parameter.
+            parsed (ParsedResume): Parsed resume payload returned by `PDFResumeParser`.
+            resume_id (int): Resume primary key used to link section rows.
 
         Returns:
-            object: Computed result.
-
+            list[dict]: Section dictionaries consumed by ``ResumeSectionRepository``.
         """
         payloads: list[dict] = []
         fallback_resolver = self._build_llm_fallback_resolver() if self.enable_section_model_fallback else None
@@ -263,24 +261,22 @@ class IngestionService:
         return payloads
 
     def _should_route_section(self, section_type: str, confidence: float) -> bool:
-        """Helper for  should route section.
+        """Helper that handles should route section.
 
         Args:
-            section_type: Input parameter.
-            confidence: Input parameter.
+            section_type (str): Canonical section label to store or evaluate.
+            confidence (float): Confidence score used to decide rerouting or acceptance.
 
         Returns:
-            bool: True when the condition is met.
-
+            bool: True when the condition is satisfied; otherwise False.
         """
         return section_type == "general" or confidence < float(self.section_model_accept_threshold or 0.75)
 
     def _build_llm_fallback_resolver(self) -> LLMFallbackResolver | None:
-        """Helper for  build llm fallback resolver.
+        """Helper that handles build llm fallback resolver.
 
         Returns:
-            object: Computed result.
-
+            LLMFallbackResolver | None: Return value for this function.
         """
         client = self.llm_client
         if client is None:
@@ -291,27 +287,25 @@ class IngestionService:
         return LLMFallbackResolver(client)
 
     def _build_candidate_external_id(self, path: Path) -> str:
-        """Helper for  build candidate external id.
+        """Helper that handles build candidate external id.
 
         Args:
-            path: Input parameter.
+            path (Path): Filesystem path of the file being parsed or ingested.
 
         Returns:
-            object: Computed result.
-
+            str: Normalized string result.
         """
         digest = hashlib.sha256(str(path.resolve()).encode("utf-8")).hexdigest()[:16]
         return f"resume_file:{digest}"
 
     def _infer_candidate_name(self, path: Path) -> str:
-        """Helper for  infer candidate name.
+        """Helper that handles infer candidate name.
 
         Args:
-            path: Input parameter.
+            path (Path): Filesystem path of the file being parsed or ingested.
 
         Returns:
-            object: Computed result.
-
+            str: Normalized string result.
         """
         raw = path.stem.replace("_", " ").replace("-", " ").strip()
         return " ".join(part.capitalize() for part in raw.split())

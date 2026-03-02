@@ -1,4 +1,4 @@
-"""Application module `src.ranking.types`."""
+"""Ranking-layer services and schemas for candidate ordering and explanations."""
 
 from __future__ import annotations
 

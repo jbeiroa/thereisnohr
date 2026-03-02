@@ -1,4 +1,4 @@
-"""Application module `src.storage.db`."""
+"""Persistence utilities, ORM models, and repository implementations."""
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
@@ -9,14 +9,10 @@ Base = declarative_base()
 
 
 def make_engine(echo: bool = False):
-    """Run make engine.
+    """Runs make engine logic.
 
     Args:
-        echo: Input parameter.
-
-    Returns:
-        object: Computed result.
-
+        echo (bool): When true enables SQL echo logging on the engine.
     """
     settings = get_settings()
     return create_engine(settings.database_url, echo=echo)
@@ -26,10 +22,9 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=make_engine(
 
 
 def get_session() -> Session:
-    """Get session.
+    """Fetches a record or value needed by downstream workflow steps.
 
     Returns:
-        object: Computed result.
-
+        Session: Return value for this function.
     """
     return SessionLocal()

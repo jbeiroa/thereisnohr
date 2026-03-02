@@ -1,4 +1,4 @@
-"""Application module `src.ranking.service`."""
+"""Ranking-layer services and schemas for candidate ordering and explanations."""
 
 from dataclasses import dataclass
 
@@ -7,17 +7,16 @@ from src.ranking.types import RankInput, RankedCandidate, RankExplanation, Score
 
 @dataclass
 class RankingService:
-    """Represents RankingService."""
+    """Service object that orchestrates ranking workflow operations."""
 
     def rank(self, candidate_ids: list[int]) -> list[int]:
-        """Run rank.
+        """Runs rank logic.
 
         Args:
-            candidate_ids: Input parameter.
+            candidate_ids (list[int]): Input value used by `candidate_ids`.
 
         Returns:
-            object: Computed result.
-
+            list[int]: Ordered list produced by this operation.
         """
         return candidate_ids
 

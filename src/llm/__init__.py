@@ -1,4 +1,4 @@
-"""LLM abstractions and providers."""
+"""Public exports for the provider-agnostic LLM package."""
 
 from src.llm.client import LLMClient, LiteLLMClient
 from src.llm.errors import (
@@ -11,16 +11,18 @@ from src.llm.errors import (
     LLMStructuredOutputError,
     LLMTimeoutError,
     coerce_provider_exception,
+    error_type_for_exception,
 )
 from src.llm.factory import build_default_llm_client
 from src.llm.registry import ModelAliasRegistry
-from src.llm.types import FallbackPolicy, LLMCallMetadata, LLMAttempt, LLMUsage, ModelRoute
+from src.llm.types import FallbackPolicy, LLMCallMetadata, LLMAttempt, LLMUsage, ModelAlias, ModelRoute
 
 __all__ = [
     "LLMClient",
     "LiteLLMClient",
     "ModelAliasRegistry",
     "build_default_llm_client",
+    "ModelAlias",
     "ModelRoute",
     "FallbackPolicy",
     "LLMUsage",
@@ -35,4 +37,5 @@ __all__ = [
     "LLMSchemaValidationError",
     "LLMRetryExhaustedError",
     "coerce_provider_exception",
+    "error_type_for_exception",
 ]

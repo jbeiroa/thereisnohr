@@ -1,4 +1,4 @@
-"""Application module `src.core.config`."""
+"""Runtime settings model loaded from environment variables and defaults."""
 
 from functools import lru_cache
 from pathlib import Path
@@ -8,7 +8,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Represents Settings."""
+    """Centralized runtime configuration loaded from environment variables.
+
+    The class defines default values for local development and lets deployment
+    environments override them through ``.env`` or process-level variables.
+    """
 
     app_name: str = "thereisnohr"
     environment: str = "dev"
@@ -46,10 +50,9 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """Get settings.
+    """Returns a cached ``Settings`` instance for process-wide reuse.
 
     Returns:
-        object: Computed result.
-
+        Settings: Singleton-like settings object initialized on first access.
     """
     return Settings()

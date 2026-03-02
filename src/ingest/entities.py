@@ -1,11 +1,11 @@
-"""Application module `src.ingest.entities`."""
+"""Ingestion components for parsing resumes and persisting structured ATS artifacts."""
 
 from dataclasses import dataclass
 from typing import TypedDict
 
 
 class SectionDiagnostics(TypedDict, total=False):
-    """Represents SectionDiagnostics."""
+    """Data model for sectiondiagnostics values."""
 
     diagnostic_flags: list[str]
     confidence_inputs: dict
@@ -14,7 +14,7 @@ class SectionDiagnostics(TypedDict, total=False):
 
 @dataclass
 class HeadingSpan:
-    """Represents HeadingSpan."""
+    """Data model for headingspan values."""
 
     raw_heading: str
     title: str
@@ -24,7 +24,7 @@ class HeadingSpan:
 
 @dataclass(frozen=True)
 class SectionItem:
-    """Represents SectionItem."""
+    """Data model for sectionitem values."""
 
     raw_heading: str
     normalized_type: str
@@ -35,7 +35,7 @@ class SectionItem:
 
 @dataclass(frozen=True)
 class IdentitySignals:
-    """Represents IdentitySignals."""
+    """Data model for identitysignals values."""
 
     name: str
     emails: str | list[str]
@@ -45,7 +45,7 @@ class IdentitySignals:
 
 @dataclass(frozen=True)
 class IdentityCandidate:
-    """Represents IdentityCandidate."""
+    """Data model for identitycandidate values."""
 
     name: str | None
     email: str | None
@@ -57,7 +57,7 @@ class IdentityCandidate:
 
 @dataclass(frozen=True)
 class ParsedResume:
-    """Represents ParsedResume."""
+    """Data model for parsedresume values."""
 
     source_file: str
     raw_text: str

@@ -1,13 +1,15 @@
-"""Application module `src.ingest.model_fallback`."""
+"""Ingestion components for parsing resumes and persisting structured ATS artifacts."""
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, TypeVar
 
 from pydantic import BaseModel, Field
 
 from src.llm.client import LLMClient
 from src.llm.errors import coerce_provider_exception
+
+SchemaModelT = TypeVar("SchemaModelT", bound=BaseModel)
 
 
 AllowedSectionType = Literal[
@@ -23,7 +25,7 @@ AllowedSectionType = Literal[
 
 
 class NameFallbackResult(BaseModel):
-    """Data model for NameFallbackResult."""
+    """Result shape for name fallback resolution."""
 
     name: str | None = None
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -31,7 +33,7 @@ class NameFallbackResult(BaseModel):
 
 
 class SectionFallbackResult(BaseModel):
-    """Data model for SectionFallbackResult."""
+    """Result shape for section fallback classification."""
 
     section_type: AllowedSectionType
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -39,16 +41,9 @@ class SectionFallbackResult(BaseModel):
 
 
 class LLMFallbackResolver:
-    """Represents LLMFallbackResolver."""
+    """Data model for llmfallbackresolver values."""
 
     def __init__(self, llm_client: LLMClient, *, model_alias: str = "extractor_default") -> None:
-        """Initialize the instance.
-
-        Args:
-            llm_client: Input parameter.
-            model_alias: Input parameter.
-
-        """
         self._llm = llm_client
         self._model_alias = model_alias
 
@@ -60,18 +55,7 @@ class LLMFallbackResolver:
         phones: list[str],
         language: str | None,
     ) -> NameFallbackResult:
-        """Run resolve name.
-
-        Args:
-            candidate_lines: Input parameter.
-            emails: Input parameter.
-            phones: Input parameter.
-            language: Input parameter.
-
-        Returns:
-            object: Computed result.
-
-        """
+        """Resolve the most likely candidate name from header context."""
         prompt = (
             "Extract the most likely person full name from resume header lines.\n"
             "Rules:\n"
@@ -84,18 +68,7 @@ class LLMFallbackResolver:
             f"candidate_lines={candidate_lines}\n"
             "Return JSON: {name, confidence, reason}."
         )
-        try:
-            return self._llm.generate_structured(
-                prompt=prompt,
-                schema=NameFallbackResult,
-                model_alias=self._model_alias,
-                temperature=0.0,
-            )
-        except Exception as exc:
-            normalized = coerce_provider_exception(exc)
-            if normalized is not exc:
-                raise normalized from exc
-            raise
+        return self._generate(prompt=prompt, schema=NameFallbackResult)
 
     def classify_section(
         self,
@@ -104,17 +77,7 @@ class LLMFallbackResolver:
         content_excerpt: str,
         language: str | None,
     ) -> SectionFallbackResult:
-        """Run classify section.
-
-        Args:
-            raw_heading: Input parameter.
-            content_excerpt: Input parameter.
-            language: Input parameter.
-
-        Returns:
-            object: Computed result.
-
-        """
+        """Classify an ambiguous section into one allowed section label."""
         prompt = (
             "Classify resume section into one of these labels only: "
             "summary, experience, education, skills, projects, certifications, contact, general.\n"
@@ -124,10 +87,25 @@ class LLMFallbackResolver:
             f"content_excerpt={content_excerpt!r}\n"
             "Return JSON: {section_type, confidence, reason}."
         )
+        return self._generate(prompt=prompt, schema=SectionFallbackResult)
+
+    def _generate(self, *, prompt: str, schema: type[SchemaModelT]) -> SchemaModelT:
+        """Helper that handles generate.
+
+        Args:
+            prompt (str): Prompt sent to the language model.
+            schema (type[SchemaModelT]): Pydantic model used to validate structured response payload.
+
+        Returns:
+            SchemaModelT: Return value for this function.
+
+        Raises:
+            normalized: Raised when validation or execution constraints are violated.
+        """
         try:
             return self._llm.generate_structured(
                 prompt=prompt,
-                schema=SectionFallbackResult,
+                schema=schema,
                 model_alias=self._model_alias,
                 temperature=0.0,
             )

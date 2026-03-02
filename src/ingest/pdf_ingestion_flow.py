@@ -1,4 +1,4 @@
-"""Application module `src.ingest.pdf_ingestion_flow`."""
+"""Ingestion components for parsing resumes and persisting structured ATS artifacts."""
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,7 +17,7 @@ from src.storage.db import get_session
 
 @IngestionTelemetryMutator()
 class ResumePdfIngestionFlow(FlowSpec):
-    """Represents ResumePdfIngestionFlow."""
+    """Metaflow pipeline definition used to orchestrate multi-step ingestion tasks."""
 
     input_dir = Parameter(
         "input-dir",
@@ -32,8 +32,7 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def start(self):
-        """Run start.
-
+        """Runs start logic.
         """
         settings = get_settings()
         input_dir_path = Path(self.input_dir)
@@ -60,8 +59,7 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def discover_files(self):
-        """Run discover files.
-
+        """Discovers input files that match the configured ingestion pattern.
         """
         service = IngestionService()
         files = service.discover_pdf_files(Path(self.settings["input_dir"]), self.settings["pattern"])
@@ -81,8 +79,7 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def ingest_one(self):
-        """Run ingest one.
-
+        """Runs ingestion logic and persists resulting ATS records.
         """
         file_path = Path(self.input)
         service = IngestionService()
@@ -123,11 +120,10 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def join_results(self, inputs):
-        """Run join results.
+        """Runs join results logic.
 
         Args:
-            inputs: Input parameter.
-
+            inputs (Any): Join-step inputs provided by Metaflow foreach execution.
         """
         self.results = [inp.ingest_result for inp in inputs]
         events: list[dict] = list(getattr(self, "_step_telemetry_events", []))
@@ -139,8 +135,7 @@ class ResumePdfIngestionFlow(FlowSpec):
     @card(type="blank", id="run_metrics")
     @step
     def end(self):
-        """Run end.
-
+        """Runs end logic.
         """
         if not hasattr(self, "results"):
             self.results = []

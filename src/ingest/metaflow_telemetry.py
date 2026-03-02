@@ -1,4 +1,4 @@
-"""Application module `src.ingest.metaflow_telemetry`."""
+"""Ingestion components for parsing resumes and persisting structured ATS artifacts."""
 
 from __future__ import annotations
 
@@ -14,25 +14,23 @@ from metaflow.cards import Markdown, Table, ValueBox
 
 
 def _utc_now_iso() -> str:
-    """Helper for  utc now iso.
+    """Helper that handles utc now iso.
 
     Returns:
-        object: Computed result.
-
+        str: Normalized string result.
     """
     return datetime.now(timezone.utc).isoformat()
 
 
 def _parse_bool(value: str | None, *, default: bool) -> bool:
-    """Helper for  parse bool.
+    """Helper that handles parse bool.
 
     Args:
-        value: Input parameter.
-        default: Input parameter.
+        value (str | None): Scalar/list input normalized or rendered by this helper.
+        default (bool): Input value used by `default`.
 
     Returns:
-        bool: True when the condition is met.
-
+        bool: True when the condition is satisfied; otherwise False.
     """
     if value is None:
         return default
@@ -40,14 +38,13 @@ def _parse_bool(value: str | None, *, default: bool) -> bool:
 
 
 def _telemetry_enabled(flow: Any) -> bool:
-    """Helper for  telemetry enabled.
+    """Helper that handles telemetry enabled.
 
     Args:
-        flow: Input parameter.
+        flow (Any): Metaflow flow object whose artifacts are being mutated.
 
     Returns:
-        bool: True when the condition is met.
-
+        bool: True when the condition is satisfied; otherwise False.
     """
     enabled = getattr(flow, "metrics_enabled", None)
     if isinstance(enabled, bool):
@@ -56,15 +53,14 @@ def _telemetry_enabled(flow: Any) -> bool:
 
 
 def _percentile(values: list[float], p: float) -> float | None:
-    """Helper for  percentile.
+    """Helper that handles percentile.
 
     Args:
-        values: Input parameter.
-        p: Input parameter.
+        values (list[float]): Input value used by `values`.
+        p (float): Input value used by `p`.
 
     Returns:
-        object: Computed result.
-
+        float | None: Return value for this function.
     """
     if not values:
         return None
@@ -90,17 +86,16 @@ def _collect_step_event(
     status: str,
     exception_type: str | None,
 ) -> None:
-    """Helper for  collect step event.
+    """Helper that handles collect step event.
 
     Args:
-        flow: Input parameter.
-        step_name: Input parameter.
-        start_ts: Input parameter.
-        end_ts: Input parameter.
-        duration_ms: Input parameter.
-        status: Input parameter.
-        exception_type: Input parameter.
-
+        flow (Any): Metaflow flow object whose artifacts are being mutated.
+        step_name (str): Pipeline step name associated with this telemetry event.
+        start_ts (str): Step start timestamp in ISO format.
+        end_ts (str): Step end timestamp in ISO format.
+        duration_ms (float): Elapsed step duration in milliseconds.
+        status (str): Execution status label stored in telemetry.
+        exception_type (str | None): Exception type captured for failed executions.
     """
     event = {
         "step_name": step_name,
@@ -119,14 +114,13 @@ def _collect_step_event(
 
 
 def _ingest_step_telemetry_impl(step_name: str, flow: Any, inputs: Any, attributes: dict):
-    """Helper for  ingest step telemetry impl.
+    """Helper that handles ingest step telemetry impl.
 
     Args:
-        step_name: Input parameter.
-        flow: Input parameter.
-        inputs: Input parameter.
-        attributes: Input parameter.
-
+        step_name (str): Pipeline step name associated with this telemetry event.
+        flow (Any): Metaflow flow object whose artifacts are being mutated.
+        inputs (Any): Join-step inputs provided by Metaflow foreach execution.
+        attributes (dict): Extra telemetry attributes merged into emitted events.
     """
     if not _telemetry_enabled(flow):
         yield
@@ -160,23 +154,21 @@ ingest_step_telemetry = user_step_decorator(_ingest_step_telemetry_impl)
 
 
 class IngestionTelemetryMutator(FlowMutator):
-    """Represents IngestionTelemetryMutator."""
+    """Data model for ingestiontelemetrymutator values."""
 
     def init(self, exclude_steps: list[str] | None = None):
-        """Run init.
+        """Runs init logic.
 
         Args:
-            exclude_steps: Input parameter.
-
+            exclude_steps (list[str] | None): Step names excluded from telemetry mutation hooks.
         """
         self.exclude_steps = set(exclude_steps or [])
 
     def pre_mutate(self, mutable_flow):
-        """Run pre mutate.
+        """Runs pre mutate logic.
 
         Args:
-            mutable_flow: Input parameter.
-
+            mutable_flow (Any): Flow instance to mutate with telemetry artifacts.
         """
         for step_name, mutable_step in mutable_flow.steps:
             if step_name in self.exclude_steps:
@@ -185,14 +177,13 @@ class IngestionTelemetryMutator(FlowMutator):
 
 
 def summarize_status_counts(results: list[dict]) -> dict[str, int]:
-    """Run summarize status counts.
+    """Runs summarize status counts logic.
 
     Args:
-        results: Input parameter.
+        results (list[dict]): Per-file ingestion results used for aggregate telemetry summaries.
 
     Returns:
-        object: Computed result.
-
+        dict[str, int]: Return value for this function.
     """
     statuses = [result.get("status", "unknown") for result in results]
     counts = Counter(statuses)
@@ -200,14 +191,13 @@ def summarize_status_counts(results: list[dict]) -> dict[str, int]:
 
 
 def summarize_reason_breakdown(results: list[dict]) -> dict[str, dict[str, int]]:
-    """Run summarize reason breakdown.
+    """Runs summarize reason breakdown logic.
 
     Args:
-        results: Input parameter.
+        results (list[dict]): Per-file ingestion results used for aggregate telemetry summaries.
 
     Returns:
-        object: Computed result.
-
+        dict[str, dict[str, int]]: Return value for this function.
     """
     skip_reasons = Counter()
     error_types = Counter()
@@ -227,14 +217,13 @@ def summarize_reason_breakdown(results: list[dict]) -> dict[str, dict[str, int]]
 
 
 def summarize_step_timing(step_events: list[dict]) -> dict[str, dict[str, float | int | None]]:
-    """Run summarize step timing.
+    """Runs summarize step timing logic.
 
     Args:
-        step_events: Input parameter.
+        step_events (list[dict]): Telemetry records for each measured flow step.
 
     Returns:
-        object: Computed result.
-
+        dict[str, dict[str, float | int | None]]: Return value for this function.
     """
     grouped: dict[str, list[float]] = defaultdict(list)
     error_counts: dict[str, int] = defaultdict(int)
@@ -273,14 +262,13 @@ def summarize_step_timing(step_events: list[dict]) -> dict[str, dict[str, float 
 
 
 def _summarize_numeric(values: list[float]) -> dict[str, float | int | None]:
-    """Helper for  summarize numeric.
+    """Helper that handles summarize numeric.
 
     Args:
-        values: Input parameter.
+        values (list[float]): Input value used by `values`.
 
     Returns:
-        object: Computed result.
-
+        dict[str, float | int | None]: Return value for this function.
     """
     if not values:
         return {
@@ -303,14 +291,13 @@ def _summarize_numeric(values: list[float]) -> dict[str, float | int | None]:
 
 
 def summarize_confidence(results: list[dict]) -> dict[str, dict[str, float | int | None]]:
-    """Run summarize confidence.
+    """Runs summarize confidence logic.
 
     Args:
-        results: Input parameter.
+        results (list[dict]): Per-file ingestion results used for aggregate telemetry summaries.
 
     Returns:
-        object: Computed result.
-
+        dict[str, dict[str, float | int | None]]: Return value for this function.
     """
     identity_values = [
         float(value)
@@ -336,17 +323,16 @@ def build_run_report(
     step_events: list[dict],
     sample_limit: int = 100,
 ) -> dict:
-    """Build run report.
+    """Runs build run report logic.
 
     Args:
-        run_meta: Input parameter.
-        results: Input parameter.
-        step_events: Input parameter.
-        sample_limit: Input parameter.
+        run_meta (dict): High-level run metadata attached to the generated report.
+        results (list[dict]): Per-file ingestion results used for aggregate telemetry summaries.
+        step_events (list[dict]): Telemetry records for each measured flow step.
+        sample_limit (int): Maximum number of file rows shown in sampled report output.
 
     Returns:
-        object: Computed result.
-
+        dict: Return value for this function.
     """
     status_counts = summarize_status_counts(results)
     total_files = len(results)
@@ -372,30 +358,28 @@ def build_run_report(
 
 
 def _kpi_markup(report: dict) -> str:
-    """Helper for  kpi markup.
+    """Helper that handles kpi markup.
 
     Args:
-        report: Input parameter.
+        report (dict): Telemetry report object rendered into markdown/card views.
 
     Returns:
-        object: Computed result.
-
+        str: Normalized string result.
     """
     status = report.get("status_counts", {})
     total = report.get("totals", {}).get("files_total", 0)
     success = report.get("totals", {}).get("success_rate", 0.0)
 
     def tile(title: str, value: Any, color: str) -> str:
-        """Run tile.
+        """Runs tile logic.
 
         Args:
-            title: Input parameter.
-            value: Input parameter.
-            color: Input parameter.
+            title (str): Title text rendered in card/table output.
+            value (Any): Scalar/list input normalized or rendered by this helper.
+            color (str): Card accent color used when rendering KPI tiles.
 
         Returns:
-            object: Computed result.
-
+            str: Normalized string result.
         """
         return (
             "<div style='flex:1; min-width:140px; padding:12px; border-radius:12px;"
@@ -421,14 +405,13 @@ def _kpi_markup(report: dict) -> str:
 
 
 def _build_status_table(report: dict) -> Table:
-    """Helper for  build status table.
+    """Helper that handles build status table.
 
     Args:
-        report: Input parameter.
+        report (dict): Telemetry report object rendered into markdown/card views.
 
     Returns:
-        object: Computed result.
-
+        Table: Return value for this function.
     """
     status_counts = report.get("status_counts", {})
     rows = [[status, count] for status, count in sorted(status_counts.items())]
@@ -436,14 +419,13 @@ def _build_status_table(report: dict) -> Table:
 
 
 def _build_confidence_table(report: dict) -> Table:
-    """Helper for  build confidence table.
+    """Helper that handles build confidence table.
 
     Args:
-        report: Input parameter.
+        report (dict): Telemetry report object rendered into markdown/card views.
 
     Returns:
-        object: Computed result.
-
+        Table: Return value for this function.
     """
     quality = report.get("ingest_quality", {})
     rows: list[list[Any]] = []
@@ -465,14 +447,13 @@ def _build_confidence_table(report: dict) -> Table:
 
 
 def _build_reason_table(report: dict) -> Table:
-    """Helper for  build reason table.
+    """Helper that handles build reason table.
 
     Args:
-        report: Input parameter.
+        report (dict): Telemetry report object rendered into markdown/card views.
 
     Returns:
-        object: Computed result.
-
+        Table: Return value for this function.
     """
     reasons = report.get("reason_breakdown", {})
     rows: list[list[Any]] = []
@@ -484,14 +465,13 @@ def _build_reason_table(report: dict) -> Table:
 
 
 def _build_file_table(report: dict) -> Table:
-    """Helper for  build file table.
+    """Helper that handles build file table.
 
     Args:
-        report: Input parameter.
+        report (dict): Telemetry report object rendered into markdown/card views.
 
     Returns:
-        object: Computed result.
-
+        Table: Return value for this function.
     """
     files = report.get("files_sample", [])
     rows: list[list[Any]] = []
@@ -524,14 +504,13 @@ def _build_file_table(report: dict) -> Table:
 
 
 def render_run_report_card(report: dict) -> list[Any]:
-    """Run render run report card.
+    """Renders report data into markdown suitable for card output.
 
     Args:
-        report: Input parameter.
+        report (dict): Telemetry report object rendered into markdown/card views.
 
     Returns:
-        object: Computed result.
-
+        list[Any]: Ordered list produced by this operation.
     """
     run_meta = report.get("run_meta", {})
 
@@ -557,15 +536,14 @@ def render_run_report_card(report: dict) -> list[Any]:
 
 
 def attach_run_report_card(report: dict, card_id: str = "run_metrics") -> bool:
-    """Run attach run report card.
+    """Attaches generated telemetry artifacts to the current flow run.
 
     Args:
-        report: Input parameter.
-        card_id: Input parameter.
+        report (dict): Telemetry report object rendered into markdown/card views.
+        card_id (str): Input value used by `card_id`.
 
     Returns:
-        bool: True when the condition is met.
-
+        bool: True when the condition is satisfied; otherwise False.
     """
     card_container = getattr(current, "card", None)
     if card_container is None:

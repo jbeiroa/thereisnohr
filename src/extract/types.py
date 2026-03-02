@@ -1,4 +1,4 @@
-"""Application module `src.extract.types`."""
+"""Extraction-layer services and schemas for structured candidate/job signals."""
 
 from __future__ import annotations
 
