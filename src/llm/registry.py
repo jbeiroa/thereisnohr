@@ -1,4 +1,8 @@
-"""Loads and validates model-alias configuration used by the LLM client layer."""
+"""Model-alias registry backed by YAML configuration.
+
+The registry is the boundary between raw YAML config and typed runtime alias
+objects used by the LLM client layer.
+"""
 
 from pathlib import Path
 
@@ -14,7 +18,7 @@ class ModelAliasRegistry:
         """Initializes the instance with its required runtime dependencies.
 
         Args:
-            config_path (Path): Path to the model-alias configuration file loaded at startup.
+            config_path (Path): Path to the YAML alias config file.
         """
         self.config_path = config_path
         self._aliases = self._load()
@@ -38,7 +42,7 @@ class ModelAliasRegistry:
             raise KeyError(f"Unknown model alias '{alias_name}'. Known aliases: {known}") from exc
 
     def _load(self) -> dict[str, ModelAlias]:
-        """Reads and validates the alias mapping from the YAML config file.
+        """Reads and validates alias mappings from the YAML config file.
 
         Returns:
             dict[str, ModelAlias]: Mapping from alias names to validated
@@ -46,7 +50,8 @@ class ModelAliasRegistry:
 
         Raises:
             FileNotFoundError: If the configured file does not exist.
-            ValueError: If YAML content is malformed for the expected schema.
+            ValueError: If YAML content is malformed for the expected alias
+                schema.
         """
         if not self.config_path.exists():
             raise FileNotFoundError(f"Model alias config not found: {self.config_path}")
@@ -63,7 +68,10 @@ class ModelAliasRegistry:
                 raise ValueError("Model alias names must be strings")
             if not isinstance(value, dict):
                 raise ValueError(f"Model alias '{name}' must be a mapping")
-            aliases[name] = ModelAlias.from_mapping(value)
+            try:
+                aliases[name] = ModelAlias.from_mapping(value)
+            except ValueError as exc:
+                raise ValueError(f"Invalid model alias '{name}': {exc}") from exc
 
         if not aliases:
             raise ValueError("Model alias config cannot be empty")

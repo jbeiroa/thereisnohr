@@ -1,4 +1,9 @@
-"""LLM infrastructure for model routing, provider access, and error handling."""
+"""Application-level error taxonomy for the LLM layer.
+
+This module normalizes provider exceptions into a small stable error contract
+that service-layer code can rely on without depending on provider-specific
+classes.
+"""
 
 from functools import lru_cache
 
@@ -41,7 +46,7 @@ class LLMRetryExhaustedError(LLMError):
 
 @lru_cache(maxsize=1)
 def _litellm_exception_types() -> tuple[type[Exception], ...]:
-    """Return all LiteLLM exception base types exposed by the SDK."""
+    """Returns LiteLLM exception base types exposed by the SDK."""
     try:
         import litellm
     except ImportError:
@@ -52,7 +57,15 @@ def _litellm_exception_types() -> tuple[type[Exception], ...]:
 
 
 def coerce_provider_exception(error: BaseException) -> BaseException:
-    """Normalize LiteLLM provider errors to a small app-level contract."""
+    """Normalizes provider exceptions into app-level error types.
+
+    Args:
+        error: Exception instance raised by provider/runtime code.
+
+    Returns:
+        BaseException: Mapped application exception when recognized, otherwise
+            the original exception.
+    """
     if not isinstance(error, Exception):
         return error
 
@@ -71,3 +84,28 @@ def coerce_provider_exception(error: BaseException) -> BaseException:
     if _litellm_exception_types() and isinstance(error, _litellm_exception_types()):
         return LLMProviderError(str(error))
     return error
+
+
+def error_type_for_exception(error: BaseException) -> str:
+    """Maps exceptions to normalized metadata error labels.
+
+    Args:
+        error: Exception to classify.
+
+    Returns:
+        str: Error-category label suitable for telemetry metadata.
+    """
+    normalized = coerce_provider_exception(error)
+    if isinstance(normalized, LLMTimeoutError):
+        return "timeout"
+    if isinstance(normalized, LLMRateLimitError):
+        return "rate_limit"
+    if isinstance(normalized, LLMProviderError):
+        return "provider"
+    if isinstance(normalized, LLMStructuredOutputError):
+        return "structured_output"
+    if isinstance(normalized, LLMSchemaValidationError):
+        return "schema_validation"
+    if isinstance(normalized, LLMRetryExhaustedError):
+        return "retry_exhausted"
+    return normalized.__class__.__name__.lower()

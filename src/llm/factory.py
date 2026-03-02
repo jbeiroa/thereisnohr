@@ -1,4 +1,4 @@
-"""LLM infrastructure for model routing, provider access, and error handling."""
+"""Factory helpers for constructing default LLM client instances."""
 
 from src.core.config import get_settings
 from src.llm.client import LiteLLMClient
@@ -6,10 +6,11 @@ from src.llm.registry import ModelAliasRegistry
 
 
 def build_default_llm_client() -> LiteLLMClient:
-    """Runs build default llm client logic.
+    """Builds the default LiteLLM client using runtime settings.
 
     Returns:
-        LiteLLMClient: Return value for this function.
+        LiteLLMClient: Client configured with registry path, timeout, and
+            retry defaults from app settings.
     """
     settings = get_settings()
     registry = ModelAliasRegistry(settings.model_aliases_path)
