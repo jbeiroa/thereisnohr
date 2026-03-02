@@ -10,6 +10,7 @@ from src.llm.errors import (
     LLMSchemaValidationError,
     LLMStructuredOutputError,
     LLMTimeoutError,
+    coerce_provider_exception,
 )
 from src.llm.factory import build_default_llm_client
 from src.llm.registry import ModelAliasRegistry
@@ -33,4 +34,5 @@ __all__ = [
     "LLMStructuredOutputError",
     "LLMSchemaValidationError",
     "LLMRetryExhaustedError",
+    "coerce_provider_exception",
 ]

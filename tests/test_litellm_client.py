@@ -1,8 +1,11 @@
+import pytest
 from pathlib import Path
 
+import litellm
 from pydantic import BaseModel
 
 from src.llm.client import LiteLLMClient
+from src.llm.errors import LLMRetryExhaustedError
 from src.llm.registry import ModelAliasRegistry
 
 
@@ -68,3 +71,40 @@ def test_embed_uses_alias(monkeypatch, tmp_path: Path) -> None:
 
     assert captured["model"] == "text-embedding-3-small"
     assert vectors == [[0.1, 0.2], [0.3, 0.4]]
+
+
+def test_generate_structured_maps_provider_errors(monkeypatch, tmp_path: Path) -> None:
+    def fake_completion(**_kwargs):
+        raise litellm.RateLimitError(
+            message="rate limited",
+            llm_provider="openai",
+            model="gpt-4o-mini",
+        )
+
+    monkeypatch.setattr("litellm.completion", fake_completion)
+
+    client = LiteLLMClient(_make_registry(tmp_path), timeout_seconds=5, max_retries=0)
+    with pytest.raises(litellm.RateLimitError, match="rate limited"):
+        client.generate_structured(
+            prompt="Summarize candidate",
+            schema=ResumeSummary,
+            model_alias="summarizer_default",
+        )
+
+
+def test_generate_structured_raises_retry_exhausted_for_parse_errors(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    def fake_completion(**_kwargs):
+        return {"choices": [{"message": {"content": "not-json"}}]}
+
+    monkeypatch.setattr("litellm.completion", fake_completion)
+
+    client = LiteLLMClient(_make_registry(tmp_path), timeout_seconds=5, max_retries=1)
+    with pytest.raises(LLMRetryExhaustedError, match="Structured generation failed after 2 attempts"):
+        client.generate_structured(
+            prompt="Summarize candidate",
+            schema=ResumeSummary,
+            model_alias="summarizer_default",
+        )

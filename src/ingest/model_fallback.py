@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from src.llm.client import LLMClient
+from src.llm.errors import coerce_provider_exception
 
 
 AllowedSectionType = Literal[
@@ -83,12 +84,18 @@ class LLMFallbackResolver:
             f"candidate_lines={candidate_lines}\n"
             "Return JSON: {name, confidence, reason}."
         )
-        return self._llm.generate_structured(
-            prompt=prompt,
-            schema=NameFallbackResult,
-            model_alias=self._model_alias,
-            temperature=0.0,
-        )
+        try:
+            return self._llm.generate_structured(
+                prompt=prompt,
+                schema=NameFallbackResult,
+                model_alias=self._model_alias,
+                temperature=0.0,
+            )
+        except Exception as exc:
+            normalized = coerce_provider_exception(exc)
+            if normalized is not exc:
+                raise normalized from exc
+            raise
 
     def classify_section(
         self,
@@ -117,9 +124,15 @@ class LLMFallbackResolver:
             f"content_excerpt={content_excerpt!r}\n"
             "Return JSON: {section_type, confidence, reason}."
         )
-        return self._llm.generate_structured(
-            prompt=prompt,
-            schema=SectionFallbackResult,
-            model_alias=self._model_alias,
-            temperature=0.0,
-        )
+        try:
+            return self._llm.generate_structured(
+                prompt=prompt,
+                schema=SectionFallbackResult,
+                model_alias=self._model_alias,
+                temperature=0.0,
+            )
+        except Exception as exc:
+            normalized = coerce_provider_exception(exc)
+            if normalized is not exc:
+                raise normalized from exc
+            raise

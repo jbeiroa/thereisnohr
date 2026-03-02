@@ -7,6 +7,11 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from src.llm.errors import (
+    LLMRetryExhaustedError,
+    LLMSchemaValidationError,
+    LLMStructuredOutputError,
+)
 from src.llm.registry import ModelAliasRegistry
 from src.llm.types import LLMCallMetadata
 
@@ -128,30 +133,38 @@ class LiteLLMClient(LLMClient):
             if max_tokens is not None:
                 call_params["max_tokens"] = max_tokens
 
-            response = completion(
-                model=alias.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Return valid JSON only. Match the requested schema exactly. "
-                            "Do not include markdown fences."
-                        ),
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                timeout=self._timeout_seconds,
-                **call_params,
-            )
-
-            raw_text = _extract_text(response)
             try:
+                response = completion(
+                    model=alias.model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "Return valid JSON only. Match the requested schema exactly. "
+                                "Do not include markdown fences."
+                            ),
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                    timeout=self._timeout_seconds,
+                    **call_params,
+                )
+                raw_text = _extract_text(response)
                 payload = json.loads(raw_text)
                 return schema.model_validate(payload)
-            except (json.JSONDecodeError, ValidationError) as exc:
-                errors.append(str(exc))
+            except Exception as exc:
+                if isinstance(exc, json.JSONDecodeError):
+                    errors.append(str(LLMStructuredOutputError(str(exc))))
+                    continue
+                if isinstance(exc, ValidationError):
+                    errors.append(str(LLMSchemaValidationError(str(exc))))
+                    continue
+                if isinstance(exc, (LLMStructuredOutputError, LLMSchemaValidationError)):
+                    errors.append(str(exc))
+                    continue
+                raise
 
-        raise ValueError(
+        raise LLMRetryExhaustedError(
             f"Structured generation failed after {attempts} attempts for alias '{model_alias}': "
             + " | ".join(errors)
         )
@@ -184,7 +197,7 @@ class LiteLLMClient(LLMClient):
         for row in data:
             embedding_values = row.get("embedding")
             if not isinstance(embedding_values, list):
-                raise ValueError("Embedding response row is missing 'embedding' list")
+                raise LLMStructuredOutputError("Embedding response row is missing 'embedding' list")
             vectors.append([float(value) for value in embedding_values])
         return vectors
 
@@ -256,7 +269,7 @@ def _extract_text(response: Any) -> str:
     payload = _coerce_mapping(response)
     choices = payload.get("choices")
     if not isinstance(choices, list) or not choices:
-        raise ValueError("Completion response does not contain choices")
+        raise LLMStructuredOutputError("Completion response does not contain choices")
     first_choice = choices[0]
     message = first_choice.get("message", {})
     content = message.get("content")
@@ -273,7 +286,7 @@ def _extract_text(response: Any) -> str:
         if fragments:
             return "".join(fragments)
 
-    raise ValueError("Completion response message content is missing or unsupported")
+    raise LLMStructuredOutputError("Completion response message content is missing or unsupported")
 
 
 def _coerce_mapping(response: Any) -> Mapping[str, Any]:
@@ -290,4 +303,4 @@ def _coerce_mapping(response: Any) -> Mapping[str, Any]:
         return response
     if hasattr(response, "model_dump"):
         return response.model_dump()
-    raise ValueError("Unsupported LiteLLM response object")
+    raise LLMStructuredOutputError("Unsupported LiteLLM response object")
