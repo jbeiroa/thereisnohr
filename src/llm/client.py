@@ -1,4 +1,4 @@
-"""LLM client interface and LiteLLM implementation."""
+"""LLM infrastructure for model routing, provider access, and error handling."""
 
 import json
 from abc import ABC, abstractmethod

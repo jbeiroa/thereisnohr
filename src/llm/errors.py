@@ -1,4 +1,4 @@
-"""LLM error taxonomy and provider-exception normalization."""
+"""LLM infrastructure for model routing, provider access, and error handling."""
 
 from functools import lru_cache
 

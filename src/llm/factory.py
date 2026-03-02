@@ -1,4 +1,4 @@
-"""Application module `src.llm.factory`."""
+"""LLM infrastructure for model routing, provider access, and error handling."""
 
 from src.core.config import get_settings
 from src.llm.client import LiteLLMClient
@@ -6,11 +6,10 @@ from src.llm.registry import ModelAliasRegistry
 
 
 def build_default_llm_client() -> LiteLLMClient:
-    """Build default llm client.
+    """Runs build default llm client logic.
 
     Returns:
-        object: Computed result.
-
+        LiteLLMClient: Return value for this function.
     """
     settings = get_settings()
     registry = ModelAliasRegistry(settings.model_aliases_path)

@@ -1,4 +1,4 @@
-"""Application module `src.extract.service`."""
+"""Extraction-layer services and schemas for structured candidate/job signals."""
 
 from dataclasses import dataclass
 
@@ -7,17 +7,16 @@ from src.extract.types import CandidateSignals, ExtractionDiagnostics, JobRequir
 
 @dataclass
 class ExtractionService:
-    """Represents ExtractionService."""
+    """Service object that orchestrates extraction workflow operations."""
 
     def extract_sections(self, text: str) -> dict[str, str]:
-        """Extract sections.
+        """Extracts structured data from raw resume or markdown input.
 
         Args:
-            text: Input parameter.
+            text (str): Text input being parsed, normalized, or scored.
 
         Returns:
-            object: Computed result.
-
+            dict[str, str]: Return value for this function.
         """
         return {"raw": text}
 

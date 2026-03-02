@@ -1,4 +1,4 @@
-"""Application module `src.storage.repositories`."""
+"""Repository classes for creating and querying ATS persistence models."""
 
 from dataclasses import dataclass
 
@@ -11,7 +11,7 @@ from src.storage import models
 
 @dataclass
 class CandidateRepository:
-    """Represents CandidateRepository."""
+    """Repository for querying and persisting candidate rows."""
 
     session: Session
 
@@ -23,18 +23,17 @@ class CandidateRepository:
         external_id: str | None = None,
         links: list[str] | None = None,
     ) -> models.Candidate:
-        """Create resource.
+        """Creates and flushes a new persistence model row.
 
         Args:
-            name: Input parameter.
-            email: Input parameter.
-            phone: Input parameter.
-            external_id: Input parameter.
-            links: Input parameter.
+            name (str | None): Candidate name value to persist or score.
+            email (str | None): Candidate email used for identity and deduplication.
+            phone (str | None): Candidate phone number used for identity and deduplication.
+            external_id (str | None): Stable external identity key for candidate upserts.
+            links (list[str] | None): Profile URLs associated with the candidate record.
 
         Returns:
-            object: Computed result.
-
+            models.Candidate: Persisted ORM instance returned after flush.
         """
         candidate = models.Candidate(name=name, email=email, phone=phone, external_id=external_id, links=links)
         self.session.add(candidate)
@@ -42,14 +41,13 @@ class CandidateRepository:
         return candidate
 
     def get_by_external_id(self, external_id: str) -> models.Candidate | None:
-        """Get by external id.
+        """Looks up a candidate using its external identity key.
 
         Args:
-            external_id: Input parameter.
+            external_id (str): Stable external identity key for candidate upserts.
 
         Returns:
-            object: Computed result.
-
+            models.Candidate | None: Matching candidate row, or ``None``.
         """
         return self.session.scalar(
             select(models.Candidate).where(models.Candidate.external_id == external_id)
@@ -65,19 +63,18 @@ class CandidateRepository:
         links: list[str] | None = None,
         name_confidence: float | None = None,
     ) -> tuple[models.Candidate, bool]:
-        """Get or create by external id.
+        """Returns an existing record when present, otherwise creates and returns a new one.
 
         Args:
-            external_id: Input parameter.
-            name: Input parameter.
-            email: Input parameter.
-            phone: Input parameter.
-            links: Input parameter.
-            name_confidence: Input parameter.
+            external_id (str): Stable external identity key for candidate upserts.
+            name (str | None): Candidate name value to persist or score.
+            email (str | None): Candidate email used for identity and deduplication.
+            phone (str | None): Candidate phone number used for identity and deduplication.
+            links (list[str] | None): Profile URLs associated with the candidate record.
+            name_confidence (float | None): Confidence score for the extracted candidate name.
 
         Returns:
-            object: Computed result.
-
+            tuple[models.Candidate, bool]: Persisted ORM instance returned after flush.
         """
         existing = self.get_by_external_id(external_id)
         if existing is not None:
@@ -102,19 +99,18 @@ class CandidateRepository:
         links: list[str] | None = None,
         name_confidence: float | None = None,
     ) -> tuple[models.Candidate, bool]:
-        """Get or create by identity key.
+        """Returns an existing record when present, otherwise creates and returns a new one.
 
         Args:
-            identity_key: Input parameter.
-            name: Input parameter.
-            email: Input parameter.
-            phone: Input parameter.
-            links: Input parameter.
-            name_confidence: Input parameter.
+            identity_key (str): Derived identity key used for candidate deduplication.
+            name (str | None): Candidate name value to persist or score.
+            email (str | None): Candidate email used for identity and deduplication.
+            phone (str | None): Candidate phone number used for identity and deduplication.
+            links (list[str] | None): Profile URLs associated with the candidate record.
+            name_confidence (float | None): Confidence score for the extracted candidate name.
 
         Returns:
-            object: Computed result.
-
+            tuple[models.Candidate, bool]: Persisted ORM instance returned after flush.
         """
         return self.get_or_create_by_external_id(
             external_id=identity_key,
@@ -126,11 +122,10 @@ class CandidateRepository:
         )
 
     def list_all(self) -> list[models.Candidate]:
-        """List all.
+        """Returns all records matching the query criteria.
 
         Returns:
-            object: Computed result.
-
+            list[models.Candidate]: Persisted ORM instance returned after flush.
         """
         return list(self.session.scalars(select(models.Candidate)).all())
 
@@ -144,16 +139,15 @@ class CandidateRepository:
         links: list[str] | None,
         name_confidence: float | None,
     ) -> None:
-        """Helper for  merge identity fields.
+        """Merges newer identity signals into an existing candidate row.
 
         Args:
-            candidate: Input parameter.
-            name: Input parameter.
-            email: Input parameter.
-            phone: Input parameter.
-            links: Input parameter.
-            name_confidence: Input parameter.
-
+            candidate (models.Candidate): Candidate ORM instance currently being evaluated.
+            name (str | None): Candidate name value to persist or score.
+            email (str | None): Candidate email used for identity and deduplication.
+            phone (str | None): Candidate phone number used for identity and deduplication.
+            links (list[str] | None): Profile URLs associated with the candidate record.
+            name_confidence (float | None): Confidence score for the extracted candidate name.
         """
         existing_quality = estimate_name_quality(candidate.name)
         incoming_quality = max(float(name_confidence or 0.0), estimate_name_quality(name))
@@ -173,14 +167,13 @@ class CandidateRepository:
 
 
 def _normalize_links(value: list[str] | dict | None) -> list[str]:
-    """Helper for  normalize links.
+    """Normalizes mixed link payloads into a plain list of URL strings.
 
     Args:
-        value: Input parameter.
+        value (list[str] | dict | None): Scalar/list input normalized or rendered by this helper.
 
     Returns:
-        object: Computed result.
-
+        list[str]: Non-empty URL strings extracted from the input payload.
     """
     if value is None:
         return []
@@ -195,20 +188,19 @@ def _normalize_links(value: list[str] | dict | None) -> list[str]:
 
 @dataclass
 class JobPostingRepository:
-    """Represents JobPostingRepository."""
+    """Repository for querying and persisting job posting rows."""
 
     session: Session
 
     def create(self, title: str, description: str) -> models.JobPosting:
-        """Create resource.
+        """Creates and flushes a new persistence model row.
 
         Args:
-            title: Input parameter.
-            description: Input parameter.
+            title (str): Human-readable job title.
+            description (str): Full job-description text for scoring/retrieval.
 
         Returns:
-            object: Computed result.
-
+            models.JobPosting: Persisted ORM instance returned after flush.
         """
         job = models.JobPosting(title=title, description=description)
         self.session.add(job)
@@ -218,31 +210,29 @@ class JobPostingRepository:
 
 @dataclass
 class ResumeRepository:
-    """Represents ResumeRepository."""
+    """Repository for querying and persisting resume rows."""
 
     session: Session
 
     def get_by_source_file(self, source_file: str) -> models.Resume | None:
-        """Get by source file.
+        """Finds a resume row by its stored source-file path.
 
         Args:
-            source_file: Input parameter.
+            source_file (str): Source file path string stored for idempotency checks.
 
         Returns:
-            object: Computed result.
-
+            models.Resume | None: Persisted ORM instance returned after flush.
         """
         return self.session.scalar(select(models.Resume).where(models.Resume.source_file == source_file))
 
     def get_by_content_hash(self, content_hash: str) -> models.Resume | None:
-        """Get by content hash.
+        """Finds a resume row by content hash for idempotency checks.
 
         Args:
-            content_hash: Input parameter.
+            content_hash (str): Deterministic hash used to detect duplicate resume content.
 
         Returns:
-            object: Computed result.
-
+            models.Resume | None: Persisted ORM instance returned after flush.
         """
         return self.session.scalar(select(models.Resume).where(models.Resume.content_hash == content_hash))
 
@@ -256,19 +246,18 @@ class ResumeRepository:
         parsed_json: dict | None = None,
         language: str | None = None,
     ) -> models.Resume:
-        """Create resource.
+        """Creates and flushes a new persistence model row.
 
         Args:
-            candidate_id: Input parameter.
-            source_file: Input parameter.
-            content_hash: Input parameter.
-            raw_text: Input parameter.
-            parsed_json: Input parameter.
-            language: Input parameter.
+            candidate_id (int): Input value used by `candidate_id`.
+            source_file (str): Source file path string stored for idempotency checks.
+            content_hash (str | None): Deterministic hash used to detect duplicate resume content.
+            raw_text (str): Raw resume text/markdown to persist.
+            parsed_json (dict | None): Parser artifact payload persisted in the resume row.
+            language (str | None): Detected document language code.
 
         Returns:
-            object: Computed result.
-
+            models.Resume: Persisted ORM instance returned after flush.
         """
         resume = models.Resume(
             candidate_id=candidate_id,
@@ -285,7 +274,7 @@ class ResumeRepository:
 
 @dataclass
 class ResumeSectionRepository:
-    """Represents ResumeSectionRepository."""
+    """Repository for querying and persisting resume section rows."""
 
     session: Session
 
@@ -298,18 +287,17 @@ class ResumeSectionRepository:
         metadata_json: dict | None = None,
         tokens: int | None = None,
     ) -> models.ResumeSection:
-        """Create resource.
+        """Creates and flushes a new persistence model row.
 
         Args:
-            resume_id: Input parameter.
-            section_type: Input parameter.
-            content: Input parameter.
-            metadata_json: Input parameter.
-            tokens: Input parameter.
+            resume_id (int): Resume primary key used to link section rows.
+            section_type (str): Canonical section label to store or evaluate.
+            content (str): Section body content associated with the heading.
+            metadata_json (dict | None): Input value used by `metadata_json`.
+            tokens (int | None): Input value used by `tokens`.
 
         Returns:
-            object: Computed result.
-
+            models.ResumeSection: Persisted ORM instance returned after flush.
         """
         section = models.ResumeSection(
             resume_id=resume_id,

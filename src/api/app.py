@@ -1,4 +1,4 @@
-"""Application module `src.api.app`."""
+"""FastAPI application and route definitions."""
 
 from fastapi import FastAPI
 
@@ -10,10 +10,9 @@ app = FastAPI(title=settings.app_name)
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    """Run health.
+    """Runs health logic.
 
     Returns:
-        object: Computed result.
-
+        dict[str, str]: Return value for this function.
     """
     return {"status": "ok"}

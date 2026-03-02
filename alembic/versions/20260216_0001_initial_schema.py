@@ -1,9 +1,4 @@
-"""initial stage-1 ats schema
-
-Revision ID: 20260216_0001
-Revises:
-Create Date: 2026-02-16
-"""
+"""Alembic migration environment and schema revision steps."""
 
 from typing import Sequence, Union
 
@@ -20,8 +15,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Run upgrade.
-
+    """Runs upgrade logic.
     """
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
@@ -97,8 +91,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Run downgrade.
-
+    """Runs downgrade logic.
     """
     op.drop_table("matches")
     op.drop_index("ix_embeddings_owner", table_name="embeddings")

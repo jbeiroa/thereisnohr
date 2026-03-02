@@ -1,4 +1,4 @@
-"""LLM-assisted fallback resolvers used by ingestion."""
+"""Ingestion components for parsing resumes and persisting structured ATS artifacts."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ class SectionFallbackResult(BaseModel):
 
 
 class LLMFallbackResolver:
-    """Executes fallback prompts and normalizes provider exceptions."""
+    """Data model for llmfallbackresolver values."""
 
     def __init__(self, llm_client: LLMClient, *, model_alias: str = "extractor_default") -> None:
         self._llm = llm_client
@@ -90,7 +90,18 @@ class LLMFallbackResolver:
         return self._generate(prompt=prompt, schema=SectionFallbackResult)
 
     def _generate(self, *, prompt: str, schema: type[SchemaModelT]) -> SchemaModelT:
-        """Run one structured LLM call and normalize provider failures."""
+        """Helper that handles generate.
+
+        Args:
+            prompt (str): Prompt sent to the language model.
+            schema (type[SchemaModelT]): Pydantic model used to validate structured response payload.
+
+        Returns:
+            SchemaModelT: Return value for this function.
+
+        Raises:
+            normalized: Raised when validation or execution constraints are violated.
+        """
         try:
             return self._llm.generate_structured(
                 prompt=prompt,

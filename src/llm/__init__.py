@@ -1,4 +1,4 @@
-"""LLM abstractions and providers."""
+"""LLM infrastructure for model routing, provider access, and error handling."""
 
 from src.llm.client import LLMClient, LiteLLMClient
 from src.llm.errors import (

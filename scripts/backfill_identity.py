@@ -1,4 +1,4 @@
-"""Utility script for `backfill_identity` workflows."""
+"""Operational script used for data maintenance tasks."""
 
 from __future__ import annotations
 
@@ -11,14 +11,13 @@ from src.storage.models import Candidate, Resume
 
 
 def run_backfill(*, apply: bool) -> int:
-    """Run run backfill.
+    """Runs run backfill logic.
 
     Args:
-        apply: Input parameter.
+        apply (bool): When true commits DB changes; when false performs a dry run.
 
     Returns:
-        object: Computed result.
-
+        int: Process exit code (0 for success).
     """
     session = get_session()
     try:
@@ -54,11 +53,10 @@ def run_backfill(*, apply: bool) -> int:
 
 
 def main() -> int:
-    """Run main.
+    """Parses CLI arguments and executes the script entrypoint.
 
     Returns:
-        object: Computed result.
-
+        int: Exit/status code for the operation.
     """
     parser = argparse.ArgumentParser(description="Backfill resume content hashes and report duplicate identity keys.")
     parser.add_argument("--apply", action="store_true", help="Persist changes. Default is dry-run.")

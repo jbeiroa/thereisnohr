@@ -1,4 +1,4 @@
-"""Application module `src.ingest.parser`."""
+"""Ingestion components for parsing resumes and persisting structured ATS artifacts."""
 
 import re
 import unicodedata
@@ -142,33 +142,31 @@ SECTION_MAPPING = {
 
 @dataclass
 class PDFResumeParser:
-    """Represents PDFResumeParser."""
+    """Data model for pdfresumeparser values."""
 
     parser_version: str = "stage3.v1"
 
     def parse(self, path: Path) -> ParsedResume:
-        """Run parse.
+        """Runs parse logic.
 
         Args:
-            path: Input parameter.
+            path (Path): Filesystem path of the file being parsed or ingested.
 
         Returns:
-            object: Computed result.
-
+            ParsedResume: Return value for this function.
         """
         markdown = self.extract_markdown(path)
         return self.parse_markdown(markdown=markdown, source_file=str(path))
 
     def parse_markdown(self, markdown: str, source_file: str) -> ParsedResume:
-        """Run parse markdown.
+        """Parses input content into the normalized structure expected by ingestion logic.
 
         Args:
-            markdown: Input parameter.
-            source_file: Input parameter.
+            markdown (str): Markdown document emitted by PDF extraction.
+            source_file (str): Source file path string stored for idempotency checks.
 
         Returns:
-            object: Computed result.
-
+            ParsedResume: Return value for this function.
         """
         clean_markdown = self._preclean_markdown(markdown)
         clean_text, _ = self.clean_resume_blocks(clean_markdown)
@@ -197,14 +195,16 @@ class PDFResumeParser:
         )
 
     def extract_markdown(self, path: Path) -> str:
-        """Extract markdown.
+        """Extracts structured information from parsed or raw resume content.
 
         Args:
-            path: Input parameter.
+            path (Path): Filesystem path of the PDF or source file being processed.
 
         Returns:
-            object: Computed result.
+            str: Normalized string result produced by this helper.
 
+        Raises:
+            Exception: Propagates validation or runtime errors encountered by this operation.
         """
         if not path.exists():
             raise FileNotFoundError(f"Resume not found: {path}")
@@ -212,14 +212,13 @@ class PDFResumeParser:
         return pymupdf4llm.to_markdown(doc, show_progress=False)
 
     def split_by_blocks(self, text: str) -> list[str]:
-        """Run split by blocks.
+        """Runs split by blocks logic.
 
         Args:
-            text: Input parameter.
+            text (str): Text input being parsed, normalized, or scored.
 
         Returns:
-            object: Computed result.
-
+            list[str]: Ordered list produced by this operation.
         """
         blocks = re.split(r"\n\n", text)
         cleaned: list[str] = []
@@ -230,14 +229,13 @@ class PDFResumeParser:
         return cleaned
 
     def clean_resume_blocks(self, text: str) -> tuple[str, list[str]]:
-        """Run clean resume blocks.
+        """Runs clean resume blocks logic.
 
         Args:
-            text: Input parameter.
+            text (str): Text input being parsed, normalized, or scored.
 
         Returns:
-            object: Computed result.
-
+            tuple[str, list[str]]: Tuple containing the values produced by this operation.
         """
         extracted_links: list[str] = []
         unique_blocks: list[str] = []
@@ -263,28 +261,26 @@ class PDFResumeParser:
         return text_out, unique_links
 
     def extract_links(self, text: str) -> list[str]:
-        """Extract links.
+        """Extracts structured information from parsed or raw resume content.
 
         Args:
-            text: Input parameter.
+            text (str): Raw text content being normalized, parsed, or scored.
 
         Returns:
-            object: Computed result.
-
+            list[str]: List of normalized string values.
         """
         links = re.findall(r"https?://[^\s\)\]]+", text)
         return sorted(set(links))
 
     def extract_sections(self, markdown: str, spans: list[HeadingSpan] | None = None) -> dict[str, str]:
-        """Extract sections.
+        """Extracts structured data from raw resume or markdown input.
 
         Args:
-            markdown: Input parameter.
-            spans: Input parameter.
+            markdown (str): Markdown document emitted by PDF extraction.
+            spans (list[HeadingSpan] | None): Detected heading spans used to split sections.
 
         Returns:
-            object: Computed result.
-
+            dict[str, str]: Return value for this function.
         """
         if spans is None:
             mapped_spans: list[HeadingSpan] = []
@@ -305,15 +301,14 @@ class PDFResumeParser:
     def _extract_sections_and_items(
         self, markdown: str, spans: list[HeadingSpan]
     ) -> tuple[dict[str, str], list[SectionItem]]:
-        """Helper for  extract sections and items.
+        """Helper that handles extract sections and items.
 
         Args:
-            markdown: Input parameter.
-            spans: Input parameter.
+            markdown (str): Markdown document emitted by PDF extraction.
+            spans (list[HeadingSpan]): Detected heading spans used to split sections.
 
         Returns:
-            object: Computed result.
-
+            tuple[dict[str, str], list[SectionItem]]: Tuple containing the values produced by this operation.
         """
         lines = markdown.splitlines()
         sections: dict[str, str] = {}
@@ -368,14 +363,13 @@ class PDFResumeParser:
         return sections, items
 
     def detect_language(self, text: str) -> str:
-        """Run detect language.
+        """Runs detect language logic.
 
         Args:
-            text: Input parameter.
+            text (str): Text input being parsed, normalized, or scored.
 
         Returns:
-            object: Computed result.
-
+            str: Normalized string result.
         """
         lowered = text.lower()
         english_markers = ["experience", "education", "skills", "university"]
@@ -391,14 +385,13 @@ class PDFResumeParser:
         return "es"
 
     def _remove_omitted_pictures(self, markdown: str) -> str:
-        """Helper for  remove omitted pictures.
+        """Helper that handles remove omitted pictures.
 
         Args:
-            markdown: Input parameter.
+            markdown (str): Markdown document emitted by PDF extraction.
 
         Returns:
-            object: Computed result.
-
+            str: Normalized string result.
         """
         return re.sub(
             r"\*\*==>.*?<==\*\*",
@@ -449,14 +442,13 @@ class PDFResumeParser:
         return "\n".join(cleaned_lines)
 
     def _remove_all_bullet_chars(self, text: str) -> str:
-        """Helper for  remove all bullet chars.
+        """Helper that handles remove all bullet chars.
 
         Args:
-            text: Input parameter.
+            text (str): Text input being parsed, normalized, or scored.
 
         Returns:
-            object: Computed result.
-
+            str: Normalized string result.
         """
         bullet_chars = r"[\u2022\u25AA\u25E6\u2023\u00B7]"
         return re.sub(bullet_chars, "", text)
@@ -472,14 +464,13 @@ class PDFResumeParser:
         return re.sub(pattern, "", text)
 
     def _preclean_markdown(self, markdown: str) -> str:
-        """Helper for  preclean markdown.
+        """Helper that handles preclean markdown.
 
         Args:
-            markdown: Input parameter.
+            markdown (str): Markdown document emitted by PDF extraction.
 
         Returns:
-            object: Computed result.
-
+            str: Normalized string result.
         """
         clean_markdown=self._remove_omitted_pictures(markdown)
         clean_markdown=self._remove_encoding_artifacts(clean_markdown)
@@ -489,14 +480,13 @@ class PDFResumeParser:
         return clean_markdown
 
     def _find_heading_spans(self, markdown: str) -> list[HeadingSpan]:
-        """Helper for  find heading spans.
+        """Helper that handles find heading spans.
 
         Args:
-            markdown: Input parameter.
+            markdown (str): Markdown document emitted by PDF extraction.
 
         Returns:
-            object: Computed result.
-
+            list[HeadingSpan]: Ordered list produced by this operation.
         """
         lines = markdown.splitlines()
         heading_pattern = re.compile(r"^(#{1,6})\s+(.*)")
@@ -530,14 +520,13 @@ class PDFResumeParser:
         return spans
 
     def _map_heading_to_section(self, title: str) -> str:
-        """Helper for  map heading to section.
+        """Helper that handles map heading to section.
 
         Args:
-            title: Input parameter.
+            title (str): Title text rendered in card/table output.
 
         Returns:
-            object: Computed result.
-
+            str: Normalized string result.
         """
         normalized = self._normalize_heading_text(title)
         normalized = " ".join(normalized.split())
@@ -549,14 +538,13 @@ class PDFResumeParser:
         return "general"
 
     def _normalize_heading_text(self, title: str) -> str:
-        """Helper for  normalize heading text.
+        """Helper that handles normalize heading text.
 
         Args:
-            title: Input parameter.
+            title (str): Title text rendered in card/table output.
 
         Returns:
-            object: Computed result.
-
+            str: Normalized string result.
         """
         no_markdown = re.sub(r"[*_`~]+", " ", title)
         folded = unicodedata.normalize("NFKD", no_markdown)
@@ -570,16 +558,15 @@ class PDFResumeParser:
         raw_heading: str,
         content: str,
     ) -> dict:
-        """Helper for  build section signals.
+        """Helper that handles build section signals.
 
         Args:
-            normalized_type: Input parameter.
-            raw_heading: Input parameter.
-            content: Input parameter.
+            normalized_type (str): Normalized section type generated by heading mapping.
+            raw_heading (str): Original heading text before normalization.
+            content (str): Section body content associated with the heading.
 
         Returns:
-            object: Computed result.
-
+            dict: Return value for this function.
         """
         flags: list[str] = []
         heading_mapped_to_general = bool(raw_heading.strip()) and normalized_type == "general"
@@ -608,14 +595,13 @@ class PDFResumeParser:
         }
 
     def _looks_like_contact_block(self, content: str) -> bool:
-        """Helper for  looks like contact block.
+        """Helper that handles looks like contact block.
 
         Args:
-            content: Input parameter.
+            content (str): Section body content associated with the heading.
 
         Returns:
-            bool: True when the condition is met.
-
+            bool: True when the condition is satisfied; otherwise False.
         """
         lowered = content.lower()
         has_email = bool(re.search(r"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}", lowered))
@@ -629,16 +615,15 @@ class PDFResumeParser:
         content: str,
         has_contact_hint: bool,
     ) -> dict | None:
-        """Helper for  suggest recategorization.
+        """Helper that handles suggest recategorization.
 
         Args:
-            normalized_type: Input parameter.
-            content: Input parameter.
-            has_contact_hint: Input parameter.
+            normalized_type (str): Normalized section type generated by heading mapping.
+            content (str): Section body content associated with the heading.
+            has_contact_hint (bool): Whether contact-pattern signals were detected in content.
 
         Returns:
-            object: Computed result.
-
+            dict | None: Return value for this function.
         """
         lowered = content.lower()
         if normalized_type != "general":

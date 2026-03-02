@@ -1,15 +1,14 @@
-"""Application module `src.core.logging`."""
+"""Core runtime utilities shared across CLI, API, and pipeline modules."""
 
 import logging
 import uuid
 
 
 def configure_logging(level: str = "INFO") -> None:
-    """Run configure logging.
+    """Runs configure logging logic.
 
     Args:
-        level: Input parameter.
-
+        level (str): Input value used by `level`.
     """
     logging.basicConfig(
         level=level.upper(),
@@ -18,18 +17,14 @@ def configure_logging(level: str = "INFO") -> None:
 
 
 class RunLoggerAdapter(logging.LoggerAdapter):
-    """Represents RunLoggerAdapter."""
+    """Data model for runloggeradapter values."""
 
     def process(self, msg, kwargs):
-        """Run process.
+        """Runs process logic.
 
         Args:
-            msg: Input parameter.
-            kwargs: Input parameter.
-
-        Returns:
-            object: Computed result.
-
+            msg (Any): Input value used by `msg`.
+            kwargs (Any): Input value used by `kwargs`.
         """
         extra = kwargs.setdefault("extra", {})
         extra.setdefault("run_id", self.extra.get("run_id"))
@@ -37,14 +32,13 @@ class RunLoggerAdapter(logging.LoggerAdapter):
 
 
 def get_run_logger(name: str) -> RunLoggerAdapter:
-    """Get run logger.
+    """Fetches a record or value needed by downstream workflow steps.
 
     Args:
-        name: Input parameter.
+        name (str): Candidate name value to persist or score.
 
     Returns:
-        object: Computed result.
-
+        RunLoggerAdapter: Return value for this function.
     """
     run_id = uuid.uuid4().hex[:12]
     return RunLoggerAdapter(logging.getLogger(name), {"run_id": run_id})

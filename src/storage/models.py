@@ -1,4 +1,4 @@
-"""Application module `src.storage.models`."""
+"""Persistence utilities, ORM models, and repository implementations."""
 
 from datetime import datetime, timezone
 
@@ -11,7 +11,7 @@ from src.storage.db import Base
 
 
 class Candidate(Base):
-    """Represents Candidate."""
+    """Data model for candidate values."""
 
     __tablename__ = "candidates"
 
@@ -29,7 +29,7 @@ class Candidate(Base):
 
 
 class Resume(Base):
-    """Represents Resume."""
+    """Data model for resume values."""
 
     __tablename__ = "resumes"
 
@@ -49,7 +49,7 @@ class Resume(Base):
 
 
 class ResumeSection(Base):
-    """Represents ResumeSection."""
+    """Data model for resumesection values."""
 
     __tablename__ = "resume_sections"
 
@@ -64,7 +64,7 @@ class ResumeSection(Base):
 
 
 class JobPosting(Base):
-    """Represents JobPosting."""
+    """Data model for jobposting values."""
 
     __tablename__ = "job_postings"
 
@@ -78,7 +78,7 @@ class JobPosting(Base):
 
 
 class Embedding(Base):
-    """Represents Embedding."""
+    """Data model for embedding values."""
 
     __tablename__ = "embeddings"
 
@@ -98,7 +98,7 @@ class Embedding(Base):
 
 
 class Match(Base):
-    """Represents Match."""
+    """Data model for match values."""
 
     __tablename__ = "matches"
 

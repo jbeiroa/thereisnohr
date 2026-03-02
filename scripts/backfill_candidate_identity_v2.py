@@ -1,4 +1,4 @@
-"""Utility script for `backfill_candidate_identity_v2` workflows."""
+"""Backfill utility that merges duplicate candidates using email/phone identity keys."""
 
 from __future__ import annotations
 
@@ -11,14 +11,14 @@ from src.storage.models import Candidate, Embedding, Match, Resume
 
 
 def _link_list(value: list[str] | dict | None) -> list[str]:
-    """Helper for  link list.
+    """Normalizes candidate-link payloads into a clean list of URL strings.
 
     Args:
-        value: Input parameter.
+        value (list[str] | dict | None): Candidate ``links`` payload. Historic
+            rows may store either a raw list or a dict containing ``urls``.
 
     Returns:
-        object: Computed result.
-
+        list[str]: Non-empty URLs converted to strings.
     """
     if value is None:
         return []
@@ -32,14 +32,14 @@ def _link_list(value: list[str] | dict | None) -> list[str]:
 
 
 def _group_key(candidate: Candidate) -> str | None:
-    """Helper for  group key.
+    """Builds the deduplication key used to group duplicate candidates.
 
     Args:
-        candidate: Input parameter.
+        candidate (Candidate): Candidate ORM instance currently being evaluated.
 
     Returns:
-        object: Computed result.
-
+        str | None: ``email:<value>`` when email exists, ``phone:<value>`` when
+            phone exists, otherwise ``None``.
     """
     email = normalize_email(candidate.email)
     if email:
@@ -51,15 +51,15 @@ def _group_key(candidate: Candidate) -> str | None:
 
 
 def _candidate_rank(candidate: Candidate, resume_counts: dict[int, int]) -> tuple[float, int, int]:
-    """Helper for  candidate rank.
+    """Computes sorting weights to pick the canonical record in a duplicate set.
 
     Args:
-        candidate: Input parameter.
-        resume_counts: Input parameter.
+        candidate (Candidate): Candidate ORM instance currently being evaluated.
+        resume_counts (dict[int, int]): Map of candidate id to resume count used for ranking duplicates.
 
     Returns:
-        object: Computed result.
-
+        tuple[float, int, int]: Tuple in priority order:
+            ``(name_quality, resume_count, -candidate_id)``.
     """
     quality = estimate_name_quality(candidate.name)
     resumes = resume_counts.get(candidate.id, 0)
@@ -67,14 +67,16 @@ def _candidate_rank(candidate: Candidate, resume_counts: dict[int, int]) -> tupl
 
 
 def run_backfill(*, apply: bool) -> int:
-    """Run run backfill.
+    """Merges duplicate candidates that share email/phone identity keys.
+
+    The script chooses a canonical candidate per duplicate group, reassigns
+    related rows (resumes, matches, embeddings), and deletes duplicate rows.
 
     Args:
-        apply: Input parameter.
+        apply (bool): When true commits DB changes; when false performs a dry run.
 
     Returns:
-        object: Computed result.
-
+        int: Process exit code (0 for success).
     """
     session = get_session()
     try:
@@ -155,11 +157,10 @@ def run_backfill(*, apply: bool) -> int:
 
 
 def main() -> int:
-    """Run main.
+    """Parses CLI arguments and executes the script entrypoint.
 
     Returns:
-        object: Computed result.
-
+        int: Exit/status code for the operation.
     """
     parser = argparse.ArgumentParser(description="Merge duplicate candidates using email/phone primary identity keys.")
     parser.add_argument("--apply", action="store_true", help="Persist changes. Default is dry-run.")

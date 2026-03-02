@@ -1,9 +1,4 @@
-"""add content hash and candidate external-id uniqueness
-
-Revision ID: 20260223_0002
-Revises: 20260216_0001
-Create Date: 2026-02-23
-"""
+"""Alembic migration environment and schema revision steps."""
 
 from typing import Sequence, Union
 
@@ -18,8 +13,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Run upgrade.
+    """Runs upgrade logic.
 
+    Raises:
+        RuntimeError: Raised when validation or execution constraints are violated.
     """
     op.add_column("resumes", sa.Column("content_hash", sa.String(length=64), nullable=True))
     op.create_index(op.f("ix_resumes_content_hash"), "resumes", ["content_hash"], unique=False)
@@ -54,8 +51,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Run downgrade.
-
+    """Runs downgrade logic.
     """
     op.drop_index("ux_candidates_external_id_not_null", table_name="candidates")
     op.drop_index(op.f("ix_resumes_content_hash"), table_name="resumes")

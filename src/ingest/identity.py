@@ -1,4 +1,4 @@
-"""Application module `src.ingest.identity`."""
+"""Ingestion components for parsing resumes and persisting structured ATS artifacts."""
 
 from __future__ import annotations
 
@@ -52,38 +52,36 @@ LOCATION_HINTS = {
 
 
 class NameResolver(Protocol):
-    """Represents NameResolver."""
+    """Data model for nameresolver values."""
 
     def resolve_name(self, text: str, context: dict) -> tuple[str | None, float, dict]:
-        """Run resolve name.
+        """Runs resolve name logic.
 
         Args:
-            text: Input parameter.
-            context: Input parameter.
+            text (str): Text input being parsed, normalized, or scored.
+            context (dict): Additional extraction context used by resolver logic.
 
         Returns:
-            object: Computed result.
-
+            tuple[str | None, float, dict]: Tuple containing the values produced by this operation.
         """
         ...
 
 
 @dataclass
 class RulesOnlyNameResolver:
-    """Represents RulesOnlyNameResolver."""
+    """Data model for rulesonlynameresolver values."""
 
     max_lines: int = 8
 
     def resolve_name(self, text: str, context: dict) -> tuple[str | None, float, dict]:
-        """Run resolve name.
+        """Runs resolve name logic.
 
         Args:
-            text: Input parameter.
-            context: Input parameter.
+            text (str): Text input being parsed, normalized, or scored.
+            context (dict): Additional extraction context used by resolver logic.
 
         Returns:
-            object: Computed result.
-
+            tuple[str | None, float, dict]: Tuple containing the values produced by this operation.
         """
         emails: list[str] = context.get("emails", [])
         lines = [line.strip() for line in text.splitlines() if line.strip()]
@@ -113,16 +111,15 @@ class RulesOnlyNameResolver:
         return best_name, round(best_score, 4), {"method": "rules", "candidates": reasons}
 
     def _score_name_line(self, line: str, line_index: int, emails: list[str]) -> tuple[float, list[str]]:
-        """Helper for  score name line.
+        """Helper that handles score name line.
 
         Args:
-            line: Input parameter.
-            line_index: Input parameter.
-            emails: Input parameter.
+            line (str): Single line of candidate text under evaluation.
+            line_index (int): Line position used as a feature in scoring.
+            emails (list[str]): Detected email addresses used during name scoring.
 
         Returns:
-            object: Computed result.
-
+            tuple[float, list[str]]: Tuple containing the values produced by this operation.
         """
         reasons: list[str] = []
         cleaned = _normalize_whitespace(line)
@@ -184,20 +181,19 @@ class RulesOnlyNameResolver:
 
 @dataclass
 class ModelNameResolver:
-    """Represents ModelNameResolver."""
+    """Data model for modelnameresolver values."""
 
     llm_resolver: LLMFallbackResolver | None = None
 
     def resolve_name(self, text: str, context: dict) -> tuple[str | None, float, dict]:
-        """Run resolve name.
+        """Runs resolve name logic.
 
         Args:
-            text: Input parameter.
-            context: Input parameter.
+            text (str): Text input being parsed, normalized, or scored.
+            context (dict): Additional extraction context used by resolver logic.
 
         Returns:
-            object: Computed result.
-
+            tuple[str | None, float, dict]: Tuple containing the values produced by this operation.
         """
         if self.llm_resolver is None:
             return None, 0.0, {"method": "model_llm", "enabled": False}
@@ -241,19 +237,18 @@ def extract_identity(
     name_fallback_trigger_threshold: float = 0.60,
     name_model_accept_threshold: float = 0.70,
 ) -> IdentityCandidate:
-    """Extract identity.
+    """Extracts structured data from raw resume or markdown input.
 
     Args:
-        parsed: Input parameter.
-        name_resolver: Input parameter.
-        model_name_resolver: Input parameter.
-        allow_model_fallback: Input parameter.
-        name_fallback_trigger_threshold: Input parameter.
-        name_model_accept_threshold: Input parameter.
+        parsed (ParsedResume): Parsed resume payload returned by `PDFResumeParser`.
+        name_resolver (NameResolver | None): Input value used by `name_resolver`.
+        model_name_resolver (NameResolver | None): Input value used by `model_name_resolver`.
+        allow_model_fallback (bool): Input value used by `allow_model_fallback`.
+        name_fallback_trigger_threshold (float): Input value used by `name_fallback_trigger_threshold`.
+        name_model_accept_threshold (float): Input value used by `name_model_accept_threshold`.
 
     Returns:
-        object: Computed result.
-
+        IdentityCandidate: Return value for this function.
     """
     emails = extract_emails(parsed.clean_text)
     phones = extract_phones(parsed.clean_text)
@@ -336,14 +331,13 @@ def extract_identity(
 
 
 def compute_content_hash(text: str) -> str:
-    """Compute content hash.
+    """Computes a derived value used for identity or deduplication logic.
 
     Args:
-        text: Input parameter.
+        text (str): Text input being parsed, normalized, or scored.
 
     Returns:
-        object: Computed result.
-
+        str: Normalized string result.
     """
     normalized = _normalize_whitespace(text).lower()
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
@@ -356,17 +350,16 @@ def compute_identity_key(
     phone: str | None,
     clean_text: str,
 ) -> tuple[str, str]:
-    """Compute identity key.
+    """Computes a derived value used for identity or deduplication logic.
 
     Args:
-        name: Input parameter.
-        email: Input parameter.
-        phone: Input parameter.
-        clean_text: Input parameter.
+        name (str | None): Candidate name value to persist or score.
+        email (str | None): Candidate email used for identity and deduplication.
+        phone (str | None): Candidate phone number used for identity and deduplication.
+        clean_text (str): Input value used by `clean_text`.
 
     Returns:
-        object: Computed result.
-
+        tuple[str, str]: Tuple containing the values produced by this operation.
     """
     normalized_email = normalize_email(email) if email else None
     normalized_phone = normalize_phone(phone) if phone else None
@@ -387,14 +380,13 @@ def compute_identity_key(
 
 
 def extract_emails(text: str) -> list[str]:
-    """Extract emails.
+    """Extracts structured information from parsed or raw resume content.
 
     Args:
-        text: Input parameter.
+        text (str): Raw text content being normalized, parsed, or scored.
 
     Returns:
-        object: Computed result.
-
+        list[str]: List of normalized string values.
     """
     emails = [normalize_email(match.group(1)) for match in EMAIL_REGEX.finditer(text)]
     unique = sorted({email for email in emails if email})
@@ -402,14 +394,13 @@ def extract_emails(text: str) -> list[str]:
 
 
 def extract_phones(text: str) -> list[str]:
-    """Extract phones.
+    """Extracts structured information from parsed or raw resume content.
 
     Args:
-        text: Input parameter.
+        text (str): Raw text content being normalized, parsed, or scored.
 
     Returns:
-        object: Computed result.
-
+        list[str]: List of normalized string values.
     """
     phones = [normalize_phone(match.group(0)) for match in PHONE_REGEX.finditer(text)]
     unique = sorted({phone for phone in phones if phone})
@@ -417,14 +408,13 @@ def extract_phones(text: str) -> list[str]:
 
 
 def normalize_email(email: str | None) -> str | None:
-    """Run normalize email.
+    """Normalizes and sanitizes the provided value.
 
     Args:
-        email: Input parameter.
+        email (str | None): Candidate email used for identity and deduplication.
 
     Returns:
-        object: Computed result.
-
+        str | None: Return value for this function.
     """
     if not email:
         return None
@@ -436,14 +426,13 @@ def normalize_email(email: str | None) -> str | None:
 
 
 def normalize_phone(phone: str | None) -> str | None:
-    """Run normalize phone.
+    """Normalizes and sanitizes the provided value.
 
     Args:
-        phone: Input parameter.
+        phone (str | None): Candidate phone number used for identity and deduplication.
 
     Returns:
-        object: Computed result.
-
+        str | None: Return value for this function.
     """
     if not phone:
         return None
@@ -466,17 +455,16 @@ def score_identity_confidence(
     phone: str | None,
     name_confidence: float,
 ) -> tuple[float, dict]:
-    """Run score identity confidence.
+    """Computes a score used by downstream ranking or decision logic.
 
     Args:
-        name: Input parameter.
-        email: Input parameter.
-        phone: Input parameter.
-        name_confidence: Input parameter.
+        name (str | None): Candidate name value to persist or score.
+        email (str | None): Candidate email used for identity and deduplication.
+        phone (str | None): Candidate phone number used for identity and deduplication.
+        name_confidence (float): Confidence score for the extracted candidate name.
 
     Returns:
-        object: Computed result.
-
+        tuple[float, dict]: Tuple containing the values produced by this operation.
     """
     score = 0.0
     reasons: list[str] = []
@@ -498,14 +486,13 @@ def score_identity_confidence(
 
 
 def estimate_name_quality(name: str | None) -> float:
-    """Run estimate name quality.
+    """Computes a score used by downstream ranking or decision logic.
 
     Args:
-        name: Input parameter.
+        name (str | None): Candidate name value to persist or score.
 
     Returns:
-        object: Computed result.
-
+        float: Return value for this function.
     """
     if not name:
         return 0.0
@@ -527,15 +514,14 @@ def estimate_name_quality(name: str | None) -> float:
 
 
 def _email_name_match_bonus(name: str, emails: list[str]) -> float:
-    """Helper for  email name match bonus.
+    """Helper that handles email name match bonus.
 
     Args:
-        name: Input parameter.
-        emails: Input parameter.
+        name (str): Candidate name value to persist or score.
+        emails (list[str]): Detected email addresses used during name scoring.
 
     Returns:
-        object: Computed result.
-
+        float: Return value for this function.
     """
     if not emails:
         return 0.0
@@ -560,14 +546,13 @@ def _email_name_match_bonus(name: str, emails: list[str]) -> float:
 
 
 def _normalize_name(value: str | None) -> str | None:
-    """Helper for  normalize name.
+    """Helper that handles normalize name.
 
     Args:
-        value: Input parameter.
+        value (str | None): Scalar/list input normalized or rendered by this helper.
 
     Returns:
-        object: Computed result.
-
+        str | None: Return value for this function.
     """
     if not value:
         return None
@@ -579,27 +564,25 @@ def _normalize_name(value: str | None) -> str | None:
 
 
 def _normalize_whitespace(text: str) -> str:
-    """Helper for  normalize whitespace.
+    """Helper that handles normalize whitespace.
 
     Args:
-        text: Input parameter.
+        text (str): Text input being parsed, normalized, or scored.
 
     Returns:
-        object: Computed result.
-
+        str: Normalized string result.
     """
     return re.sub(r"\s+", " ", text).strip()
 
 
 def _strip_line_prefix(text: str) -> str:
-    """Helper for  strip line prefix.
+    """Helper that handles strip line prefix.
 
     Args:
-        text: Input parameter.
+        text (str): Text input being parsed, normalized, or scored.
 
     Returns:
-        object: Computed result.
-
+        str: Normalized string result.
     """
     stripped = text.strip()
     stripped = re.sub(r"^[#>\-\*\u2022]+\s*", "", stripped)
@@ -607,14 +590,13 @@ def _strip_line_prefix(text: str) -> str:
 
 
 def _normalize_candidate_name_line(line: str) -> str:
-    """Helper for  normalize candidate name line.
+    """Helper that handles normalize candidate name line.
 
     Args:
-        line: Input parameter.
+        line (str): Single line of candidate text under evaluation.
 
     Returns:
-        object: Computed result.
-
+        str: Normalized string result.
     """
     candidate = _normalize_whitespace(line)
     candidate = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", candidate)
@@ -627,14 +609,13 @@ def _normalize_candidate_name_line(line: str) -> str:
 
 
 def _is_valid_person_name(name: str | None) -> bool:
-    """Helper for  is valid person name.
+    """Helper that handles is valid person name.
 
     Args:
-        name: Input parameter.
+        name (str | None): Candidate name value to persist or score.
 
     Returns:
-        bool: True when the condition is met.
-
+        bool: True when the condition is satisfied; otherwise False.
     """
     if not name:
         return False
