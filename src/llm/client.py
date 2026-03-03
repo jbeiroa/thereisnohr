@@ -1,7 +1,5 @@
 """LLM clients backed by LiteLLM Router for routing and failover."""
 
-from __future__ import annotations
-
 import json
 import time
 from abc import ABC, abstractmethod

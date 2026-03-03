@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     summarizer_model_alias: str = "summarizer_default"
     extractor_model_alias: str = "extractor_default"
     explainer_model_alias: str = "explainer_default"
+    openai_api_key: str | None = None
 
     llm_timeout_seconds: float = 30.0
     llm_max_retries: int = 2
