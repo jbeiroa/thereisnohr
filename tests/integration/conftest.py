@@ -14,11 +14,23 @@ pytest.importorskip("docker")
 from docker.errors import DockerException
 from testcontainers.postgres import PostgresContainer
 
+DEFAULT_INTEGRATION_POSTGRES_IMAGE = "pgvector/pgvector:pg16"
+
+
+def _normalize_postgres_url(raw_url: str) -> str:
+    """Normalizes testcontainer URLs to the psycopg3 SQLAlchemy dialect."""
+    if raw_url.startswith("postgresql+psycopg2://"):
+        return raw_url.replace("postgresql+psycopg2://", "postgresql+psycopg://", 1)
+    if raw_url.startswith("postgresql://"):
+        return raw_url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return raw_url
+
 
 @pytest.fixture(scope="session")
 def integration_db_url() -> Generator[str, None, None]:
+    image = os.getenv("INTEGRATION_POSTGRES_IMAGE", DEFAULT_INTEGRATION_POSTGRES_IMAGE)
     try:
-        container = PostgresContainer("postgres:16")
+        container = PostgresContainer(image)
     except DockerException as exc:
         pytest.skip(f"Docker is unavailable for integration tests: {exc}")
 
@@ -29,7 +41,7 @@ def integration_db_url() -> Generator[str, None, None]:
 
     try:
         postgres = postgres_ctx
-        db_url = postgres.get_connection_url().replace("postgresql://", "postgresql+psycopg://")
+        db_url = _normalize_postgres_url(postgres.get_connection_url())
 
         os.environ["DATABASE_URL"] = db_url
 

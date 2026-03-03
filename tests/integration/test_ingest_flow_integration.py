@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -50,10 +51,12 @@ def test_flow_run_report_smoke(monkeypatch, integration_db_url, tmp_path: Path) 
     flow.discover_files()
 
     branches = []
-    for file_path in flow.pdf_files:
+    for idx, _file_path in enumerate(flow.pdf_files):
         branch = ResumePdfIngestionFlow(use_cli=False)
         branch.settings = flow.settings
-        branch.input = file_path
+        branch.pdf_files = flow.pdf_files
+        branch._foreach_stack = [SimpleNamespace(var="pdf_files", index=idx)]  # noqa: SLF001
+        branch._cached_input = {}  # noqa: SLF001
         branch.next = lambda *args, **kwargs: None
         branch.ingest_one()
         branches.append(branch)
