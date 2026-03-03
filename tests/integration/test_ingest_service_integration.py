@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from src.ingest.service import IngestionService
+from src.llm.types import LLMCallMetadata
 from src.storage import models
 from tests.integration._helpers import MappingParser, counts
 
@@ -137,3 +138,43 @@ def test_section_diagnostics_persisted(db_session, tmp_path: Path) -> None:
     assert "recategorization_candidate" in metadata
     assert "original_section_type" in metadata
     assert "section_routed_by_model" in metadata
+
+
+@pytest.mark.integration
+def test_non_skill_section_embeddings_persisted(db_session, tmp_path: Path) -> None:
+    source_path = tmp_path / "embed.pdf"
+    parser = MappingParser(
+        {
+            str(source_path): "# Experience\nBuilt services for backend systems.\n# Skills\nPython\nSQL",
+        }
+    )
+
+    class FakeLLM:
+        def embed_with_meta(self, texts, embedding_model_alias):
+            vectors = [[0.1] * 1536 for _ in texts]
+            meta = LLMCallMetadata(
+                model_alias=embedding_model_alias,
+                selected_model="openai/text-embedding-3-small",
+            )
+            return vectors, meta
+
+    service = IngestionService(
+        parser=parser,
+        llm_client=FakeLLM(),
+        enable_name_model_fallback=False,
+        enable_section_model_fallback=False,
+    )
+
+    result = service.ingest_pdf(source_path, db_session)
+    db_session.commit()
+
+    assert result.status == "ingested"
+    sections = db_session.query(models.ResumeSection).all()
+    non_skill_ids = {row.id for row in sections if row.section_type != "skills" and row.content.strip()}
+    skill_ids = {row.id for row in sections if row.section_type == "skills"}
+
+    embeddings = db_session.query(models.Embedding).all()
+    assert len(embeddings) == len(non_skill_ids)
+    assert {row.owner_type for row in embeddings} == {"resume_section"}
+    assert {row.owner_id for row in embeddings} == non_skill_ids
+    assert not ({row.owner_id for row in embeddings} & skill_ids)

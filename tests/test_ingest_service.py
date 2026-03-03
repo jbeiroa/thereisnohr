@@ -1,9 +1,11 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 from pydantic import BaseModel
 
 from src.ingest.parser import PDFResumeParser
 from src.ingest.service import IngestionService
+from src.llm.types import LLMCallMetadata, LLMUsage
 
 
 def test_discover_pdf_files_finds_nested(tmp_path: Path) -> None:
@@ -283,3 +285,180 @@ def test_section_model_promotion_applies_threshold(monkeypatch) -> None:
     assert any(section["section_type"] == "skills" for section in _Store.sections)
     assert _Store.sections[0]["metadata_json"]["original_section_type"] in {"contact", "general"}
     assert _Store.sections[-1]["metadata_json"]["section_routed_by_model"] is True
+
+
+def test_ingest_persists_non_skill_section_embeddings(monkeypatch) -> None:
+    parser = PDFResumeParser()
+    parsed = parser.parse_markdown(
+        markdown="# Experience\nBuilt API services.\n# Skills\nPython",
+        source_file="/tmp/resume_embeddings.pdf",
+    )
+
+    class FakeLLM:
+        def embed_with_meta(self, texts, embedding_model_alias):
+            assert embedding_model_alias == "embedding_default"
+            assert texts == ["Built API services."]
+            meta = LLMCallMetadata(
+                model_alias=embedding_model_alias,
+                selected_model="openai/text-embedding-3-small",
+                usage=LLMUsage(estimated_cost_usd=0.0012),
+            )
+            return [[0.1, 0.2]], meta
+
+    class _Store:
+        resumes: list[SimpleNamespace] = []
+        sections: list[dict] = []
+        embeddings: list[dict] = []
+
+    class FakeCandidateRepository:
+        def __init__(self, session):
+            self.session = session
+
+        def get_or_create_by_identity_key(self, **kwargs):
+            candidate = {"id": 1, "external_id": kwargs["identity_key"], "links": kwargs.get("links")}
+            return type("Candidate", (), candidate), True
+
+    class FakeResumeRepository:
+        def __init__(self, session):
+            self.session = session
+
+        def get_by_source_file(self, source_file):
+            return None
+
+        def get_by_content_hash(self, content_hash):
+            return None
+
+        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, language=None):
+            resume = SimpleNamespace(id=1, candidate_id=candidate_id, parsed_json=parsed_json)
+            _Store.resumes.append(resume)
+            return resume
+
+    class FakeResumeSectionRepository:
+        def __init__(self, session):
+            self.session = session
+
+        def create(self, *, resume_id, section_type, content, metadata_json=None, tokens=None):
+            row = {"id": len(_Store.sections) + 1, "resume_id": resume_id, "section_type": section_type, "content": content}
+            _Store.sections.append(row)
+            return type("Section", (), row)
+
+    class FakeEmbeddingRepository:
+        def __init__(self, session):
+            self.session = session
+
+        def create(self, *, owner_type, owner_id, model, vector, text_hash):
+            row = {
+                "owner_type": owner_type,
+                "owner_id": owner_id,
+                "model": model,
+                "vector": vector,
+                "text_hash": text_hash,
+            }
+            _Store.embeddings.append(row)
+            return type("Embedding", (), row)
+
+    monkeypatch.setattr("src.ingest.service.CandidateRepository", FakeCandidateRepository)
+    monkeypatch.setattr("src.ingest.service.ResumeRepository", FakeResumeRepository)
+    monkeypatch.setattr("src.ingest.service.ResumeSectionRepository", FakeResumeSectionRepository)
+    monkeypatch.setattr("src.ingest.service.EmbeddingRepository", FakeEmbeddingRepository)
+
+    service = IngestionService(
+        llm_client=FakeLLM(),
+        enable_name_model_fallback=False,
+        enable_section_model_fallback=False,
+    )
+    monkeypatch.setattr(service, "parse_pdf", lambda path: parsed)
+
+    result = service.ingest_pdf(Path("/tmp/resume_embeddings.pdf"), session=object())
+    assert result.status == "ingested"
+    assert len(_Store.embeddings) == 1
+    assert _Store.embeddings[0]["owner_type"] == "resume_section"
+    assert _Store.embeddings[0]["owner_id"] == 1
+    assert _Store.embeddings[0]["model"] == "openai/text-embedding-3-small"
+    embedding_meta = _Store.resumes[0].parsed_json["embedding"]
+    assert embedding_meta["status"] == "ok"
+    assert embedding_meta["vector_count"] == 1
+    assert embedding_meta["estimated_cost_usd"] == 0.0012
+
+
+def test_ingest_soft_fails_when_embedding_call_errors(monkeypatch) -> None:
+    parser = PDFResumeParser()
+    parsed = parser.parse_markdown(
+        markdown="# Experience\nBuilt API services.\n# Skills\nPython",
+        source_file="/tmp/resume_embedding_error.pdf",
+    )
+
+    class FakeLLM:
+        def embed_with_meta(self, texts, embedding_model_alias):
+            raise RuntimeError("embedding provider unavailable")
+
+    class _Store:
+        resumes: list[SimpleNamespace] = []
+        sections: list[dict] = []
+        embeddings: list[dict] = []
+
+    class FakeCandidateRepository:
+        def __init__(self, session):
+            self.session = session
+
+        def get_or_create_by_identity_key(self, **kwargs):
+            candidate = {"id": 1, "external_id": kwargs["identity_key"], "links": kwargs.get("links")}
+            return type("Candidate", (), candidate), True
+
+    class FakeResumeRepository:
+        def __init__(self, session):
+            self.session = session
+
+        def get_by_source_file(self, source_file):
+            return None
+
+        def get_by_content_hash(self, content_hash):
+            return None
+
+        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, language=None):
+            resume = SimpleNamespace(id=1, candidate_id=candidate_id, parsed_json=parsed_json)
+            _Store.resumes.append(resume)
+            return resume
+
+    class FakeResumeSectionRepository:
+        def __init__(self, session):
+            self.session = session
+
+        def create(self, *, resume_id, section_type, content, metadata_json=None, tokens=None):
+            row = {"id": len(_Store.sections) + 1, "resume_id": resume_id, "section_type": section_type, "content": content}
+            _Store.sections.append(row)
+            return type("Section", (), row)
+
+    class FakeEmbeddingRepository:
+        def __init__(self, session):
+            self.session = session
+
+        def create(self, *, owner_type, owner_id, model, vector, text_hash):
+            row = {
+                "owner_type": owner_type,
+                "owner_id": owner_id,
+                "model": model,
+                "vector": vector,
+                "text_hash": text_hash,
+            }
+            _Store.embeddings.append(row)
+            return type("Embedding", (), row)
+
+    monkeypatch.setattr("src.ingest.service.CandidateRepository", FakeCandidateRepository)
+    monkeypatch.setattr("src.ingest.service.ResumeRepository", FakeResumeRepository)
+    monkeypatch.setattr("src.ingest.service.ResumeSectionRepository", FakeResumeSectionRepository)
+    monkeypatch.setattr("src.ingest.service.EmbeddingRepository", FakeEmbeddingRepository)
+
+    service = IngestionService(
+        llm_client=FakeLLM(),
+        enable_name_model_fallback=False,
+        enable_section_model_fallback=False,
+    )
+    monkeypatch.setattr(service, "parse_pdf", lambda path: parsed)
+
+    result = service.ingest_pdf(Path("/tmp/resume_embedding_error.pdf"), session=object())
+    assert result.status == "ingested"
+    assert _Store.embeddings == []
+    embedding_meta = _Store.resumes[0].parsed_json["embedding"]
+    assert embedding_meta["status"] == "error"
+    assert embedding_meta["error_type"] == "RuntimeError"

@@ -13,7 +13,12 @@ from src.ingest.model_fallback import LLMFallbackResolver
 from src.ingest.parser import PDFResumeParser
 from src.llm.client import LLMClient
 from src.llm.factory import build_default_llm_client
-from src.storage.repositories import CandidateRepository, ResumeRepository, ResumeSectionRepository
+from src.storage.repositories import (
+    CandidateRepository,
+    EmbeddingRepository,
+    ResumeRepository,
+    ResumeSectionRepository,
+)
 
 
 @dataclass(frozen=True)
@@ -106,6 +111,7 @@ class IngestionService:
         candidate_repo = CandidateRepository(session)
         resume_repo = ResumeRepository(session)
         section_repo = ResumeSectionRepository(session)
+        embedding_repo = EmbeddingRepository(session)
 
         existing = resume_repo.get_by_source_file(parsed.source_file)
         if existing is not None:
@@ -172,16 +178,27 @@ class IngestionService:
 
         section_count = 0
         section_confidences: list[float] = []
+        created_sections = []
         for payload in section_payloads:
-            section_repo.create(
+            section = section_repo.create(
                 resume_id=resume.id,
                 section_type=payload["section_type"],
                 content=payload["content"],
                 metadata_json=payload["metadata_json"],
                 tokens=len(payload["content"].split()),
             )
+            created_sections.append(section)
             section_count += 1
             section_confidences.append(payload["metadata_json"]["section_confidence"])
+
+        embedding_meta = self._persist_section_embeddings(
+            resume_sections=created_sections,
+            embedding_repo=embedding_repo,
+        )
+        resume_parsed_json = dict(getattr(resume, "parsed_json", None) or {})
+        resume_parsed_json["embedding"] = embedding_meta
+        if hasattr(resume, "parsed_json"):
+            resume.parsed_json = resume_parsed_json
 
         avg_section_confidence = (
             round(sum(section_confidences) / len(section_confidences), 4)
@@ -285,6 +302,99 @@ class IngestionService:
             except Exception:
                 return None
         return LLMFallbackResolver(client)
+
+    def _resolve_llm_client(self) -> LLMClient | None:
+        """Returns an LLM client instance if one is available."""
+        if self.llm_client is not None:
+            return self.llm_client
+        try:
+            return build_default_llm_client()
+        except Exception:
+            return None
+
+    def _persist_section_embeddings(
+        self,
+        *,
+        resume_sections: list,
+        embedding_repo: EmbeddingRepository,
+    ) -> dict:
+        """Embeds non-skill sections and persists vectors per section."""
+        settings = get_settings()
+        candidates: list[tuple[int, str]] = []
+        for section in resume_sections:
+            section_type = str(getattr(section, "section_type", "") or "")
+            content = str(getattr(section, "content", "") or "")
+            if section_type == "skills" or not content.strip():
+                continue
+            section_id = getattr(section, "id", None)
+            if not isinstance(section_id, int):
+                continue
+            candidates.append((section_id, content))
+
+        if not candidates:
+            return {
+                "status": "skipped",
+                "model_alias": settings.embedding_model_alias,
+                "vector_count": 0,
+            }
+
+        client = self._resolve_llm_client()
+        if client is None:
+            return {
+                "status": "error",
+                "model_alias": settings.embedding_model_alias,
+                "vector_count": 0,
+                "error_type": "client_unavailable",
+            }
+
+        texts = [content for _, content in candidates]
+        try:
+            vectors, metadata = client.embed_with_meta(
+                texts=texts,
+                embedding_model_alias=settings.embedding_model_alias,
+            )
+        except Exception as exc:
+            return {
+                "status": "error",
+                "model_alias": settings.embedding_model_alias,
+                "vector_count": 0,
+                "error_type": type(exc).__name__,
+            }
+        if len(vectors) != len(candidates):
+            return {
+                "status": "error",
+                "model_alias": settings.embedding_model_alias,
+                "vector_count": 0,
+                "error_type": "vector_count_mismatch",
+            }
+
+        persisted = 0
+        selected_model = metadata.selected_model or settings.embedding_model_alias
+        try:
+            for (section_id, content), vector in zip(candidates, vectors):
+                embedding_repo.create(
+                    owner_type="resume_section",
+                    owner_id=section_id,
+                    model=selected_model,
+                    vector=vector,
+                    text_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
+                )
+                persisted += 1
+        except Exception as exc:
+            return {
+                "status": "error",
+                "model_alias": settings.embedding_model_alias,
+                "vector_count": 0,
+                "error_type": type(exc).__name__,
+            }
+
+        return {
+            "status": "ok",
+            "model_alias": settings.embedding_model_alias,
+            "selected_model": selected_model,
+            "vector_count": persisted,
+            "estimated_cost_usd": metadata.usage.estimated_cost_usd,
+        }
 
     def _build_candidate_external_id(self, path: Path) -> str:
         """Helper that handles build candidate external id.

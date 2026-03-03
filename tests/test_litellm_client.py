@@ -76,6 +76,7 @@ def test_generate_structured_with_meta_returns_usage(monkeypatch, tmp_path: Path
         }
 
     monkeypatch.setattr(litellm.Router, "completion", fake_completion)
+    monkeypatch.setattr(litellm, "completion_cost", lambda **_kwargs: 0.000123)
 
     client = LiteLLMClient(_make_registry(tmp_path), timeout_seconds=5, max_retries=1)
     result, meta = client.generate_structured_with_meta(
@@ -88,6 +89,32 @@ def test_generate_structured_with_meta_returns_usage(monkeypatch, tmp_path: Path
     assert meta.model_alias == "summarizer_default"
     assert meta.selected_model == "openai/gpt-4o-mini"
     assert meta.usage.total_tokens == 6
+    assert meta.usage.estimated_cost_usd == pytest.approx(0.000123)
+
+
+def test_generate_structured_with_meta_handles_cost_estimation_failures(monkeypatch, tmp_path: Path) -> None:
+    def fake_completion(self, **_kwargs):  # noqa: ANN001
+        _ = self
+        return {
+            "model": "openai/gpt-4o-mini",
+            "usage": {"prompt_tokens": 4, "completion_tokens": 2, "total_tokens": 6},
+            "choices": [{"message": {"content": '{"name": "Ada", "score": 0.91}'}}],
+        }
+
+    def fake_cost(**_kwargs):  # noqa: ANN001
+        raise RuntimeError("no pricing")
+
+    monkeypatch.setattr(litellm.Router, "completion", fake_completion)
+    monkeypatch.setattr(litellm, "completion_cost", fake_cost)
+
+    client = LiteLLMClient(_make_registry(tmp_path), timeout_seconds=5, max_retries=1)
+    _, meta = client.generate_structured_with_meta(
+        prompt="Summarize candidate",
+        schema=ResumeSummary,
+        model_alias="summarizer_default",
+    )
+
+    assert meta.usage.estimated_cost_usd is None
 
 
 def test_embed_uses_alias(monkeypatch, tmp_path: Path) -> None:

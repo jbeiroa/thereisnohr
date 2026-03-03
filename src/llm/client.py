@@ -484,8 +484,28 @@ def _extract_usage(payload: Mapping[str, Any]) -> LLMUsage:
         prompt_tokens=int(prompt_tokens) if isinstance(prompt_tokens, int) else None,
         completion_tokens=int(completion_tokens) if isinstance(completion_tokens, int) else None,
         total_tokens=int(total_tokens) if isinstance(total_tokens, int) else None,
-        estimated_cost_usd=None,
+        estimated_cost_usd=_estimate_cost_usd(payload),
     )
+
+
+def _estimate_cost_usd(payload: Mapping[str, Any]) -> float | None:
+    """Best-effort USD cost estimation via LiteLLM pricing utilities."""
+    try:
+        from litellm import completion_cost
+    except Exception:
+        return None
+
+    try:
+        cost = completion_cost(completion_response=payload)
+    except Exception:
+        return None
+
+    if cost is None:
+        return None
+    try:
+        return float(cost)
+    except (TypeError, ValueError):
+        return None
 
 
 def _extract_attempts(

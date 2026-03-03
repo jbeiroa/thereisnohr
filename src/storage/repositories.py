@@ -309,3 +309,42 @@ class ResumeSectionRepository:
         self.session.add(section)
         self.session.flush()
         return section
+
+
+@dataclass
+class EmbeddingRepository:
+    """Repository for querying and persisting embedding rows."""
+
+    session: Session
+
+    def create(
+        self,
+        *,
+        owner_type: str,
+        owner_id: int,
+        model: str,
+        vector: list[float],
+        text_hash: str,
+    ) -> models.Embedding:
+        """Creates and flushes one embedding row.
+
+        Args:
+            owner_type (str): Entity type owning this embedding.
+            owner_id (int): Entity identifier owning this embedding.
+            model (str): Provider/model identifier used to generate the vector.
+            vector (list[float]): Embedding vector payload.
+            text_hash (str): Deterministic content hash for the embedded text.
+
+        Returns:
+            models.Embedding: Persisted ORM instance returned after flush.
+        """
+        embedding = models.Embedding(
+            owner_type=owner_type,
+            owner_id=owner_id,
+            model=model,
+            vector=vector,
+            text_hash=text_hash,
+        )
+        self.session.add(embedding)
+        self.session.flush()
+        return embedding

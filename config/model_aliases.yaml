@@ -41,7 +41,7 @@ embedding_default:
   default_model: ollama/embeddinggemma
   default_litellm_params: {}
   fallbacks:
-    - model: openai/text-embedding-3-smalll
+    - model: openai/text-embedding-3-small
       litellm_params: {}
   fallback_policy:
     num_retries: 1
