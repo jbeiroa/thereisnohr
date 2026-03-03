@@ -87,6 +87,7 @@ def truncate_tables(integration_db_url):
                 TRUNCATE TABLE
                     matches,
                     embeddings,
+                    embedding_models,
                     resume_sections,
                     resumes,
                     candidates,

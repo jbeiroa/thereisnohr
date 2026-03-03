@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -86,14 +86,40 @@ class Embedding(Base):
     owner_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     owner_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
-    vector: Mapped[list[float]] = mapped_column(Vector(1536), nullable=False)
+    dimensions: Mapped[int] = mapped_column(Integer, nullable=False)
+    vector: Mapped[list[float]] = mapped_column(Vector(), nullable=False)
     text_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
     __table_args__ = (
+        CheckConstraint("dimensions > 0", name="ck_embeddings_dimensions_positive"),
+        CheckConstraint("dimensions = vector_dims(vector)", name="ck_embeddings_dimensions_match_vector"),
+        ForeignKeyConstraint(
+            ["model", "dimensions"],
+            ["embedding_models.model", "embedding_models.dimensions"],
+            name="fk_embeddings_model_dimensions",
+        ),
         Index("ix_embeddings_owner", "owner_type", "owner_id"),
+        Index("ix_embeddings_model_dimensions_owner", "model", "dimensions", "owner_type", "owner_id"),
+    )
+
+
+class EmbeddingModel(Base):
+    """Data model for embeddingmodel values."""
+
+    __tablename__ = "embedding_models"
+
+    model: Mapped[str] = mapped_column(String(128), primary_key=True)
+    dimensions: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint("dimensions > 0", name="ck_embedding_models_dimensions_positive"),
+        Index("ux_embedding_models_model_dimensions", "model", "dimensions", unique=True),
     )
 
 

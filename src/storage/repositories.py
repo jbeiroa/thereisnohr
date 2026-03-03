@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.ingest.identity import estimate_name_quality
 from src.storage import models
 
 
@@ -149,8 +148,8 @@ class CandidateRepository:
             links (list[str] | None): Profile URLs associated with the candidate record.
             name_confidence (float | None): Confidence score for the extracted candidate name.
         """
-        existing_quality = estimate_name_quality(candidate.name)
-        incoming_quality = max(float(name_confidence or 0.0), estimate_name_quality(name))
+        existing_quality = _estimate_name_quality(candidate.name)
+        incoming_quality = max(float(name_confidence or 0.0), _estimate_name_quality(name))
         if name and (
             not candidate.name
             or (incoming_quality >= 0.70 and existing_quality < 0.70)
@@ -184,6 +183,13 @@ def _normalize_links(value: list[str] | dict | None) -> list[str]:
         if isinstance(urls, list):
             return [str(v) for v in urls if str(v).strip()]
     return []
+
+
+def _estimate_name_quality(name: str | None) -> float:
+    """Lazily imports name-quality heuristic to avoid repository import cycles."""
+    from src.ingest.identity import estimate_name_quality
+
+    return estimate_name_quality(name)
 
 
 @dataclass
@@ -338,10 +344,26 @@ class EmbeddingRepository:
         Returns:
             models.Embedding: Persisted ORM instance returned after flush.
         """
+        dimensions = len(vector)
+        if dimensions <= 0:
+            raise ValueError("Embedding vector must contain at least one dimension")
+
+        registered = self.session.scalar(
+            select(models.EmbeddingModel).where(models.EmbeddingModel.model == model)
+        )
+        if registered is None:
+            self.session.add(models.EmbeddingModel(model=model, dimensions=dimensions))
+            self.session.flush()
+        elif int(registered.dimensions) != dimensions:
+            raise ValueError(
+                f"Embedding model '{model}' expects {registered.dimensions} dimensions, got {dimensions}"
+            )
+
         embedding = models.Embedding(
             owner_type=owner_type,
             owner_id=owner_id,
             model=model,
+            dimensions=dimensions,
             vector=vector,
             text_hash=text_hash,
         )

@@ -9,6 +9,7 @@ def test_stage1_tables_registered() -> None:
         "resume_sections",
         "job_postings",
         "embeddings",
+        "embedding_models",
         "matches",
     }
     assert expected_tables.issubset(set(Base.metadata.tables.keys()))
