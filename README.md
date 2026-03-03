@@ -44,13 +44,13 @@ Implemented now:
 - parser output contract with `sections`, `section_items`, and extracted `links`.
 - deterministic content-based candidate identity resolution (`name`/`email`/`phone` + identity confidence diagnostics).
 - resume content-hash idempotency checks in ingestion.
+- optional model-based fallback for low-confidence name extraction (rules-first, threshold-gated).
+- run-level ingestion metrics/reporting artifacts in Metaflow (`run_report` + `run_metrics` card).
+- OCR-aware markdown extraction path via `pymupdf-layout` (active when system `tesseract` is available).
 - Stage 3 experimentation notebook suite under `notebooks/` (parser QA, ingestion service checks, repository smoke checks, and LLM registry checks).
 
-Not implemented yet (planned in Stage 3/4+):
+Not implemented yet (planned in Stage 4+):
 
-- optional model-based fallback for low-confidence name extraction,
-- run-level ingestion metrics/reporting artifacts in Metaflow,
-- optional OCR fallback for scanned PDFs (explicitly not prioritized right now),
 - retrieval/ranking logic and score explanations,
 - production API endpoints beyond healthcheck.
 

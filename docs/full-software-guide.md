@@ -6,7 +6,7 @@ This guide is the canonical technical walkthrough of the `thereisnohr` codebase 
 It consolidates:
 - Current implementation truth from `src/`, `alembic/`, `config/`, `scripts/`, and `tests/`
 - Existing docs under `docs/`
-- Planning/history files under `.plans/`
+- The baseline reengineering plan under `.plans/REENGINEERING_PLAN.md`
 
 When sources disagree, this guide prioritizes current code and tests.
 
@@ -32,7 +32,7 @@ When sources disagree, this guide prioritizes current code and tests.
 - `scripts/`: backfill/repair utilities
 - `tests/`: unit + integration tests
 - `docs/`: architecture and stage guides
-- `.plans/`: planning history and execution notes
+- `.plans/`: baseline plan (`REENGINEERING_PLAN.md`)
 - `thereisnohr/`: legacy historical pipeline (not current architecture)
 
 ## Architecture Layers (Bottom to Top)
@@ -388,7 +388,7 @@ uv run python scripts/backfill_candidate_identity_v2.py --apply
 ```
 
 ## Stage Status Matrix (Reconciled)
-This matrix reconciles `docs/` + `.plans/` history with current code.
+This matrix reconciles `docs/` + reengineering-plan history with current code.
 
 | Stage | Planned intent | Current code reality |
 |---|---|---|
@@ -402,7 +402,7 @@ This matrix reconciles `docs/` + `.plans/` history with current code.
 
 ## Reality vs Plan Notes
 - Older stage docs/plans describe Stage 2 as lacking async/fallback/metadata; current code now includes async methods, alias-based fallback policy, and call metadata types.
-- Some docs label Stage 3 as partially implemented while `.plans/stage3.md` marks it completed. Current code supports substantial ingestion capabilities, but extraction/retrieval/ranking business stages are still incomplete.
+- Some docs historically labeled Stage 3 as partially implemented. Current code supports substantial ingestion capabilities, but extraction/retrieval/ranking business stages are still incomplete.
 - The canonical source for current behavior is code + tests, not historical plan status labels.
 
 ## Public Interfaces and Contracts (Current)
@@ -455,10 +455,6 @@ For new development, use `src/` architecture only.
 
 ### Plans
 - `.plans/REENGINEERING_PLAN.md`
-- `.plans/STAGE2_EXECUTION_ORDER.md`
-- `.plans/stage3.md`
-- `.plans/codebase-comprehendion-guide.md`
-- `.plans/stage1-stage2-playground-todos.md`
 
 ### Code Anchors
 - `src/core/*`

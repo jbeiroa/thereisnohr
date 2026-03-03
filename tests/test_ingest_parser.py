@@ -107,3 +107,24 @@ def test_accented_and_markdown_headings_are_normalized() -> None:
 
     assert "education" in parsed.sections
     assert "summary" in parsed.sections
+
+
+def test_extract_markdown_falls_back_when_ocr_backend_unavailable(monkeypatch, tmp_path) -> None:
+    parser = PDFResumeParser()
+    source = tmp_path / "resume.pdf"
+    source.write_bytes(b"%PDF-1.4\n%%EOF\n")
+    calls = {"count": 0}
+
+    def fake_to_markdown(_doc, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 1:
+            raise RuntimeError("Tesseract language data not found")
+        assert kwargs.get("use_ocr") is False
+        return "# Experience\nTaught physics"
+
+    monkeypatch.setattr("src.ingest.parser.pymupdf4llm.to_markdown", fake_to_markdown)
+    monkeypatch.setattr("src.ingest.parser.pymupdf.open", lambda _path: object())
+
+    text = parser.extract_markdown(source)
+    assert "Experience" in text
+    assert calls["count"] == 2

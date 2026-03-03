@@ -1,4 +1,4 @@
-# Stage 3 (In Progress): PDF Ingestion Pipeline with Metaflow
+# Stage 3 (Completed): PDF Ingestion Pipeline with Metaflow
 
 This document covers the current Stage 3 implementation state: PDF ingestion, parser hardening work, and persistence into Postgres using Metaflow orchestration.
 
@@ -123,11 +123,21 @@ uv run python scripts/backfill_identity.py
 uv run python scripts/backfill_identity.py --apply
 ```
 
+Optional OCR dependency for scanned PDFs:
+
+```bash
+# macOS
+brew install tesseract
+
+# Ubuntu/Debian
+sudo apt-get install -y tesseract-ocr
+```
+
 ## 5) Current constraints
 
-- Optional model-based NER fallback is not enabled by default (rules-first extraction only).
+- Model-based fallback remains rules-first and threshold-gated.
 - Section diagnostics are persisted, but recategorization remains advisory metadata only.
-- OCR fallback for scanned PDFs is currently de-prioritized and out of active Stage 3 scope.
+- OCR fallback depends on system `tesseract`; when unavailable, parser extraction automatically falls back to non-OCR mode.
 - Metaflow execution is local process mode by default.
 
 ## 6) Tests and validation
@@ -144,12 +154,7 @@ Current notebook coverage includes:
 - parser QA notebook with assertion-driven checks (`notebooks/parsers_testing.ipynb`),
 - service/repository/registry smoke notebooks for isolated experimentation.
 
-## 7) Next expected Stage 3 increments
-
-1. Optional model-based fallback for low-confidence name extraction (Presidio/HF/GLiNER adapter).
-2. DB-backed integration tests for end-to-end ingestion validation (identity/idempotency/reporting).
-
-## 8) Integration test commands
+## 7) Integration test commands
 
 Run default fast suite (integration excluded by marker):
 

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pymupdf
+import pymupdf.layout  # noqa: F401  # activates pymupdf-layout enhancements for pymupdf4llm
 import pymupdf4llm
 
 from src.ingest.entities import HeadingSpan, ParsedResume, SectionItem
@@ -209,7 +210,12 @@ class PDFResumeParser:
         if not path.exists():
             raise FileNotFoundError(f"Resume not found: {path}")
         doc = pymupdf.open(path)
-        return pymupdf4llm.to_markdown(doc, show_progress=False)
+        try:
+            return pymupdf4llm.to_markdown(doc, show_progress=False, use_ocr=True, force_ocr=False)
+        except RuntimeError as exc:
+            if "Tesseract" not in str(exc):
+                raise
+            return pymupdf4llm.to_markdown(doc, show_progress=False, use_ocr=False, force_ocr=False)
 
     def split_by_blocks(self, text: str) -> list[str]:
         """Runs split by blocks logic.
