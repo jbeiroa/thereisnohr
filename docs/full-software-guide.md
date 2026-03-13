@@ -171,13 +171,10 @@ File: `config/model_aliases.yaml`
 
 Current intent:
 - Logical aliases for summarization, extraction, explanation, embeddings
-- OpenAI-first with Ollama fallback chains
+- Ollama-first with OpenAI fallback chains
 
 Current caveat in config values:
-- There are probable model-string typos:
-  - `openai/gpt-4o-minii`
-  - `openai/text-embedding-3-smalll`
-- These should be corrected before relying on those aliases in production calls.
+- Keep aliases in sync with provider availability and local model installs.
 
 ### 5) Ingestion Layer (Stage 3 Core)
 Status: `Implemented (Primary Functional Slice)`
@@ -429,7 +426,7 @@ This matrix reconciles `docs/` + reengineering-plan history with current code.
 ## Current Gaps and Risks
 - `extract`, `retrieval`, and `ranking` services are mostly stubs.
 - CLI/API are mostly scaffolding beyond health and flow guidance.
-- Alias config contains probable model ID typos that can cause runtime provider failures.
+- Alias config must stay aligned with available provider models to avoid runtime failures.
 - System-level observability and production ops hardening are early-stage.
 
 ## Legacy Appendix (Historical, Not Active Architecture)

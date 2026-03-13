@@ -1,4 +1,4 @@
-# Architecture (Stage 0/1 baseline + Stage 2/3 in progress)
+# Architecture (Stage 0/1 baseline + Stage 2/3 implemented)
 
 This document explains what was introduced in the reengineering baseline and why.
 
@@ -28,7 +28,7 @@ What exists now:
 
 - service boundaries for steps 1-4,
 - durable DB schema for step 3,
-- partial concrete implementation for step 1/2 in Stage 3 parser + ingestion flow,
+- concrete implementation for step 1/2 in the parser + ingestion flow,
 - operational primitives (config/logging/CLI/API/tests).
 
 ## 3) Module-by-module breakdown
@@ -67,7 +67,7 @@ Reasoning:
 
 ## `src/ingest/`, `src/extract/`, `src/retrieval/`, `src/ranking/`
 
-`src/ingest/` now contains substantive Stage 3 behavior:
+`src/ingest/` now contains substantive ingestion behavior:
 
 - PDF markdown extraction (`pymupdf4llm`),
 - precleaning of conversion artifacts,
@@ -156,10 +156,10 @@ Tradeoff:
 
 ## 8) Extensibility path toward Stage 2+
 
-The current structure is ready for:
+The current structure supports:
 
-- LiteLLM adapter layer in `src/llm/`,
-- robust parsing and section extraction in `src/extract/`,
+- LiteLLM adapter layer in `src/llm/` (implemented),
+- robust parsing and section extraction in `src/extract/` (parsing implemented, extraction stubs remain),
 - embedding generation and vector indexing in `src/retrieval/`,
 - hybrid ranking and explanation logic in `src/ranking/`,
 - API expansion for ingestion/jobs/matches in `src/api/`.

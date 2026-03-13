@@ -183,8 +183,8 @@ Stores role definition and structured requirement payloads used in matching.
 
 ## 9) Known limitations in Stage 0/1
 
-- No production ingestion/extraction implementation yet.
-- Stage 2 LiteLLM adapter exists, but it is not wired into ingestion/extraction/ranking flows yet.
+- Ingestion pipeline is implemented, but extraction is still stubbed.
+- Stage 2 LiteLLM adapter is wired into ingestion fallbacks and embeddings, but not into extraction/ranking flows yet.
 - No retrieval/ranking scoring logic yet.
 - No end-user API surface yet beyond healthcheck.
 

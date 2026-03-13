@@ -1,12 +1,13 @@
-# Stage 2 LLM Layer (Initial Implementation)
+# Stage 2 LLM Layer (Completed)
 
-This document explains the first implementation slice of Stage 2: model/provider agnostic LLM access via LiteLLM.
+This document explains the current Stage 2 implementation: model/provider agnostic LLM access via LiteLLM.
 
 ## What was added
 
 - `src/llm/client.py`
   - `LLMClient` abstract interface.
   - `LiteLLMClient` concrete implementation.
+  - Async methods and metadata-returning variants.
 - `src/llm/registry.py`
   - Loads model aliases from YAML and validates shape.
 - `src/llm/types.py`
@@ -49,6 +50,7 @@ EXTRACTOR_MODEL_ALIAS=extractor_default
 EXPLAINER_MODEL_ALIAS=explainer_default
 LLM_TIMEOUT_SECONDS=30
 LLM_MAX_RETRIES=2
+OPENAI_API_KEY=your-openai-api-key
 ```
 
 ## Alias file format
@@ -57,16 +59,28 @@ LLM_MAX_RETRIES=2
 
 ```yaml
 summarizer_default:
-  model: openai/gpt-4o-mini
-  params:
+  default_model: ollama/llama3.2:3b
+  default_litellm_params:
     temperature: 0.2
     max_tokens: 900
+  fallbacks:
+    - model: openai/gpt-4o-mini
+      litellm_params:
+        temperature: 0.2
+        max_tokens: 900
+  fallback_policy:
+    num_retries: 2
 embedding_default:
-  model: text-embedding-3-small
-  params: {}
+  default_model: ollama/embeddinggemma
+  default_litellm_params: {}
+  fallbacks:
+    - model: openai/text-embedding-3-small
+      litellm_params: {}
+  fallback_policy:
+    num_retries: 1
 ```
 
-`model` is required. `params` is optional and passed to LiteLLM calls.
+`default_model` is required. `default_litellm_params`, `fallbacks`, and `fallback_policy` are optional.
 
 ## Usage examples
 
@@ -98,12 +112,3 @@ from src.llm.factory import build_default_llm_client
 client = build_default_llm_client()
 vectors = client.embed(["candidate A", "candidate B"], "embedding_default")
 ```
-
-## Current limitations
-
-- No async interface yet.
-- No provider-specific structured output mode (JSON schema API) yet; currently prompt + parse + validate.
-- No fallback provider chain yet.
-- No token/cost telemetry yet.
-
-These will be addressed in the next Stage 2 increments.
