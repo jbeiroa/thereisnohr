@@ -1,7 +1,5 @@
 """Ranking-layer services and schemas for candidate ordering and explanations."""
 
-from __future__ import annotations
-
 from pydantic import BaseModel, Field
 
 from src.extract.types import CandidateSignals, JobRequirements
@@ -11,6 +9,7 @@ class RankInput(BaseModel):
     """Input payload for candidate ranking."""
 
     candidate_id: int
+    retrieval_score: float
     requirements: JobRequirements
     signals: CandidateSignals
 
