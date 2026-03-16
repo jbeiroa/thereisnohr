@@ -1,7 +1,5 @@
 """Ingestion components for parsing resumes and persisting structured ATS artifacts."""
 
-from __future__ import annotations
-
 from typing import Literal, TypeVar
 
 from pydantic import BaseModel, Field

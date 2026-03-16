@@ -1,7 +1,5 @@
 """Ingestion components for parsing resumes and persisting structured ATS artifacts."""
 
-from __future__ import annotations
-
 import os
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
