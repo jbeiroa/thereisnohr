@@ -198,6 +198,8 @@ class LiteLLMClient(LLMClient):
         if max_tokens is not None:
             call_kwargs["max_tokens"] = max_tokens
 
+        schema_json = json.dumps(schema.model_json_schema(), indent=2)
+
         try:
             response = router.completion(
                 model=model_alias,
@@ -205,8 +207,9 @@ class LiteLLMClient(LLMClient):
                     {
                         "role": "system",
                         "content": (
-                            "Return valid JSON only. Match the requested schema exactly. "
-                            "Do not include markdown fences."
+                            "Return valid JSON only. Match the following JSON schema exactly:\n"
+                            f"```json\n{schema_json}\n```\n"
+                            "Do not include markdown fences in your output."
                         ),
                     },
                     {"role": "user", "content": prompt},
@@ -302,6 +305,8 @@ class LiteLLMClient(LLMClient):
         if max_tokens is not None:
             call_kwargs["max_tokens"] = max_tokens
 
+        schema_json = json.dumps(schema.model_json_schema(), indent=2)
+
         try:
             response = await router.acompletion(
                 model=model_alias,
@@ -309,8 +314,9 @@ class LiteLLMClient(LLMClient):
                     {
                         "role": "system",
                         "content": (
-                            "Return valid JSON only. Match the requested schema exactly. "
-                            "Do not include markdown fences."
+                            "Return valid JSON only. Match the following JSON schema exactly:\n"
+                            f"```json\n{schema_json}\n```\n"
+                            "Do not include markdown fences in your output."
                         ),
                     },
                     {"role": "user", "content": prompt},
