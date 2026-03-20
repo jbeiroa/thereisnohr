@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from src.extract.types import CandidateSignals
 from src.ingest.service import IngestionService
 from src.llm.types import LLMCallMetadata
 from src.storage import models
@@ -157,6 +158,15 @@ def test_non_skill_section_embeddings_persisted(db_session, tmp_path: Path) -> N
                 selected_model="openai/text-embedding-3-small",
             )
             return vectors, meta
+
+        def generate_structured_with_meta(self, prompt, schema, model_alias):
+            # Just return an empty signals instance
+            result = CandidateSignals()
+            meta = LLMCallMetadata(
+                model_alias=model_alias,
+                selected_model="some-model",
+            )
+            return result, meta
 
     service = IngestionService(
         parser=parser,
