@@ -2,7 +2,7 @@
 
 `thereisnohr` is being rebuilt as a small, flexible, provider-agnostic Applicant Tracking System (ATS).
 
-This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), starts **Stage 2** (provider-agnostic LLM layer), and delivers a substantial **Stage 3** ingestion/parsing slice.
+This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), **Stage 2** (provider-agnostic LLM layer), **Stage 3** (ingestion/parsing slice), and **Stage 4** (retrieval and hybrid ranking).
 
 ## Why this reengineering exists
 
@@ -14,19 +14,20 @@ The original project goal was resume selection automation for a specific school 
 - rank top-k applicants,
 - produce transparent explanations for hiring decisions.
 
-The first two stages intentionally focus on reliability and architecture, not model quality yet:
+The first stages focused on reliability and architecture, while Stage 4 introduces the core matching intelligence:
 
 - Stage 0 provides a clean runtime shape and testable boundaries.
 - Stage 1 provides data durability and query foundations (Postgres + pgvector).
+- Stage 4 provides the multi-stage ranking funnel (Vector + Deterministic + LLM).
 
-## Current capabilities (Stage 0/1/2/3 slice)
+## Current capabilities (Stage 0/1/2/3/4 slice)
 
 Implemented now:
 
 - flat `src/` code layout with explicit module boundaries,
 - typed environment configuration (`pydantic-settings`),
 - structured logging with per-run IDs,
-- CLI skeleton (`ats ingest`, `ats index`, `ats rank`),
+- CLI tools for ingestion and ranking (`ats ingest-job`, `ats rank`),
 - FastAPI app skeleton (`/health`),
 - SQLAlchemy models for ATS entities,
 - Alembic migrations and pgvector extension setup,
@@ -47,28 +48,30 @@ Implemented now:
 - optional model-based fallback for low-confidence name extraction (rules-first, threshold-gated).
 - run-level ingestion metrics/reporting artifacts in Metaflow (`run_report` + `run_metrics` card).
 - OCR-aware markdown extraction path via `pymupdf-layout` (active when system `tesseract` is available).
-- Stage 3 experimentation notebook suite under `notebooks/` (parser QA, ingestion service checks, repository smoke checks, and LLM registry checks).
+- Stage 3/4 experimentation notebook suite under `notebooks/` (parser QA, ingestion service checks, repository smoke checks, LLM registry checks, and extraction testing).
+- **Hybrid Retrieval & Ranking Pipeline:** Multi-stage funnel (Vector Retrieval -> Deterministic Scoring -> LLM Reranking).
+- **Job Posting Ingestion:** Structured requirement extraction from job descriptions.
+- **Candidate Signal Extraction:** Automatic derivation of skills and experience from parsed resumes.
 
-Not implemented yet (planned in Stage 4+):
+Not implemented yet (planned in Stage 5+):
 
-- retrieval/ranking logic and score explanations,
-- production API endpoints beyond healthcheck.
+- production API endpoints beyond healthcheck,
+- web UI for recruiters.
 
 ## Repository map
 
 - `src/core/`: runtime settings and logging.
 - `src/cli.py`: CLI entrypoint and commands.
 - `src/api/`: FastAPI app.
-- `src/ingest/`: ingestion service boundary.
-- `src/extract/`: extraction service boundary.
-- `src/retrieval/`: retrieval service boundary.
-- `src/ranking/`: ranking service boundary.
+- `src/ingest/`: ingestion service boundary and Metaflow flow.
+- `src/extract/`: structured signal extraction (candidates and jobs).
+- `src/retrieval/`: semantic vector retrieval.
+- `src/ranking/`: hybrid scoring and LLM reranking logic.
 - `src/storage/`: SQLAlchemy engine, models, repositories.
 - `src/llm/`: provider-agnostic client interface, alias registry, LiteLLM provider.
-- `src/ingest/`: parser, ingestion service, and Metaflow PDF ingestion flow.
 - `alembic/`: migration runtime and revision scripts.
 - `config/model_aliases.yaml`: model routing aliases and default provider params.
-- `tests/`: foundational test suite for Stage 0/1.
+- `tests/`: foundational test suite and stage-specific integration tests.
 - `docs/`: architecture and usage documentation.
 
 ## Quickstart (uv)
@@ -109,10 +112,17 @@ uv run uvicorn src.api.app:app --reload
 uv run alembic upgrade head
 ```
 
-6. Run Stage 3 ingestion flow:
+6. Run ingestion flow:
 
 ```bash
 uv run python src/ingest/pdf_ingestion_flow.py run --input-dir data --pattern '*.pdf'
+```
+
+7. Ingest a job and rank candidates:
+
+```bash
+uv run ats ingest-job data/job_descriptions.txt --title "Software Engineer"
+uv run ats rank 1 --top-k 5
 ```
 
 ## Configuration
@@ -123,25 +133,30 @@ Copy `.env.example` to `.env` and adjust values:
 APP_NAME=thereisnohr
 ENVIRONMENT=dev
 LOG_LEVEL=INFO
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5433/thereisnohr_stage1
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5433/thereisnohr
 EMBEDDING_MODEL_ALIAS=embedding_default
 SUMMARIZER_MODEL_ALIAS=summarizer_default
-INGEST_FLOW_METRICS_ENABLED=true
+EXTRACTOR_MODEL_ALIAS=extractor_default
+RANKER_MODEL_ALIAS=ranker_default
 ```
 
 Configuration is loaded by `src/core/config.py` with typed defaults and env overrides.
 
 ## Intended usage today
 
-Current commands are scaffolding-oriented and useful for validating wiring, environment, and developer setup:
+The CLI provides a full end-to-end flow from resume ingestion to candidate ranking:
 
 ```bash
-uv run ats ingest /path/to/resume.txt
-uv run ats index
-uv run ats rank 123 --top-k 5
+# 1. Ingest resumes (Batch)
+uv run python src/ingest/pdf_ingestion_flow.py run --input-dir data
+
+# 2. Ingest a job description
+uv run ats ingest-job data/job_descriptions.txt --title "Python Expert"
+
+# 3. Rank candidates for the job (ID 1)
+uv run ats rank 1 --top-k 3
 ```
 
-These are placeholders by design; they define stable interfaces that Stage 2+ will implement.
 
 ## Stage 2 usage (LLM abstraction)
 

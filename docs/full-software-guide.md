@@ -12,19 +12,19 @@ When sources disagree, this guide prioritizes current code and tests.
 
 ## System Snapshot (Current Reality)
 `thereisnohr` is an ATS reengineering project with:
-- Strong foundations implemented: config, logging, DB schema, migrations, repositories, test harness, CLI/API shells
-- A substantial Stage 3 ingestion vertical slice implemented: PDF parse -> identity resolution -> persistence -> Metaflow orchestration + telemetry
-- A Stage 2 LLM abstraction implemented (LiteLLM, alias routing, fallback, normalized errors), partially integrated into ingestion fallbacks
-- Extraction/retrieval/ranking service boundaries present but mostly scaffolding
+- Strong foundations implemented: config, logging, DB schema, migrations, repositories, test harness.
+- A substantial Stage 3 ingestion vertical slice implemented: PDF parse -> identity resolution -> persistence -> Metaflow orchestration + telemetry.
+- A Stage 2 LLM abstraction implemented (LiteLLM, alias routing, fallback, normalized errors), integrated into ingestion fallbacks, signal extraction, and reranking.
+- **Stage 4 implemented:** Extraction, retrieval, and hybrid ranking are fully functional.
 
 ## Repository Map
 - `src/core/`: typed settings + logging utilities
 - `src/storage/`: SQLAlchemy base/session, ORM models, repositories
 - `src/llm/`: provider-agnostic client abstraction and LiteLLM implementation
 - `src/ingest/`: parser, identity extraction, fallback resolver, ingestion service, Metaflow flow, telemetry
-- `src/extract/`: extraction contracts + service stubs
-- `src/retrieval/`: retrieval boundary + placeholder service
-- `src/ranking/`: ranking contracts + placeholder service
+- `src/extract/`: structured signal extraction for candidates and jobs
+- `src/retrieval/`: semantic vector retrieval
+- `src/ranking/`: hybrid scoring and LLM reranking logic
 - `src/api/`: FastAPI app (`/health`)
 - `src/cli.py`: Typer CLI entrypoint
 - `alembic/`: migration runtime + revisions
@@ -272,20 +272,16 @@ Execution semantics:
 - End step compiles and prints run summary, plus report/card artifact
 
 ### 6) Entrypoints
-Status: `Partially Implemented`
+Status: `Implemented`
 
 #### CLI
 File: `src/cli.py`
 
 Commands:
-- `ingest`
-- `index`
-- `rank`
-- `ingest-flow-help`
-
-Reality:
-- `ingest/index/rank` are interface placeholders
-- Operationally meaningful command today is `ingest-flow-help` guidance to run the Metaflow ingestion flow
+- `ingest-job`: Ingests a job description and extracts requirements.
+- `rank`: Retrieves and ranks candidates for a job.
+- `ingest-flow-help`: Guidance for the Metaflow ingestion flow.
+- `ingest`: (Placeholder) Single-file ingestion.
 
 #### API
 File: `src/api/app.py`
@@ -294,23 +290,23 @@ What exists:
 - FastAPI app
 - `/health` endpoint returning `{"status": "ok"}`
 
-Reality:
-- No production ATS feature endpoints yet.
+### 7) Extraction, Retrieval, and Ranking (Stage 4 Core)
+Status: `Implemented`
 
-### 7) Extraction, Retrieval, Ranking Boundaries
-Status: `Scaffold/Placeholder`
+#### Extraction
+File: `src/extract/service.py`
+- Uses LLM to extract structured `CandidateSignals` (skills, experience summary) from resumes.
+- Uses LLM to extract `JobRequirements` (hard/soft skills, years exp) from job descriptions.
 
-Files:
-- `src/extract/service.py`
-- `src/retrieval/service.py`
-- `src/ranking/service.py`
+#### Retrieval
+File: `src/retrieval/service.py`
+- Performs vector similarity search against `resume_sections` using `pgvector`.
 
-Current state:
-- Boundary interfaces and data types are defined
-- Most methods raise `NotImplementedError` or return placeholder output
-
-Why this matters:
-- Interface-first contracts are present; core business behavior for these stages remains to be implemented.
+#### Ranking
+File: `src/ranking/service.py`, `src/ranking/workflow.py`
+- `Deterministic Scorer`: Combines vector score with explicit hard-skill overlap.
+- `LLM Reranker`: Refines top candidates with qualitative AI assessment and explanations.
+- `Workflow`: Orchestrates retrieval -> scoring -> reranking -> persistence to `matches`.
 
 ## Batch Orchestration and Runtime Data Flow
 Current end-to-end functional path:
@@ -391,24 +387,23 @@ This matrix reconciles `docs/` + reengineering-plan history with current code.
 |---|---|---|
 | Stage 0 | Foundation/hygiene | Implemented |
 | Stage 1 | Durable schema/persistence | Implemented |
-| Stage 2 | Provider-agnostic LLM layer | Core implemented; partially integrated |
-| Stage 3 | Ingestion/extraction pipeline hardening | Ingestion vertical slice implemented; extraction service layer still partial |
-| Stage 4 | Retrieval + hybrid ranking | Pending (contracts only) |
-| Stage 5 | Explanations/interview prep | Pending |
+| Stage 2 | Provider-agnostic LLM layer | Implemented |
+| Stage 3 | Ingestion/extraction pipeline | Implemented |
+| Stage 4 | Retrieval + hybrid ranking | Implemented |
+| Stage 5 | Explanations/interview prep | Implemented (as part of Stage 4) |
 | Stage 6 | API expansion + ops hardening | Pending |
 
 ## Reality vs Plan Notes
-- Older stage docs/plans describe Stage 2 as lacking async/fallback/metadata; current code now includes async methods, alias-based fallback policy, and call metadata types.
-- Some docs historically labeled Stage 3 as partially implemented. Current code supports substantial ingestion capabilities, but extraction/retrieval/ranking business stages are still incomplete.
+- Retrieval and hybrid ranking (Stage 4) are fully functional, including LLM-based explanations for matches.
+- Extraction service derives structured signals for both candidates and jobs.
 - The canonical source for current behavior is code + tests, not historical plan status labels.
 
 ## Public Interfaces and Contracts (Current)
 
 ### CLI Contract
-- `ats ingest PATH` (placeholder behavior)
-- `ats index` (placeholder behavior)
-- `ats rank JOB_ID --top-k N` (placeholder behavior)
-- `ats ingest-flow-help` (operational helper)
+- `ats ingest-job PATH --title "Title"` (Ingests a JD and extracts requirements)
+- `ats rank JOB_ID --top-k N` (Retrieves and ranks candidates for a job)
+- `ats ingest-flow-help` (Operational helper for Metaflow)
 
 ### API Contract
 - `GET /health` -> `{"status": "ok"}`
@@ -417,6 +412,7 @@ This matrix reconciles `docs/` + reengineering-plan history with current code.
 - `IngestionService.discover_pdf_files(input_dir, pattern="*.pdf") -> list[Path]`
 - `IngestionService.parse_pdf(path) -> ParsedResume`
 - `IngestionService.ingest_pdf(path, session) -> IngestionResult`
+- `IngestionService.ingest_job(title, description, session) -> int`
 
 ### LLM Contract
 - `LLMClient.generate_structured(...)`
@@ -424,8 +420,8 @@ This matrix reconciles `docs/` + reengineering-plan history with current code.
 - async variants and metadata-returning variants
 
 ## Current Gaps and Risks
-- `extract`, `retrieval`, and `ranking` services are mostly stubs.
-- CLI/API are mostly scaffolding beyond health and flow guidance.
+- API surface is minimal; most core features are CLI-only.
+- Web UI for recruiters is not yet implemented.
 - Alias config must stay aligned with available provider models to avoid runtime failures.
 - System-level observability and production ops hardening are early-stage.
 
