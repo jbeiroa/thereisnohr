@@ -51,17 +51,21 @@ Ranking results are persisted to the `matches` table for later review or API con
   uv run ats rank <job_id> --top-k 5
   ```
 - **Persisted Data:** `job_id`, `candidate_id`, `retrieval_score`, `rerank_score`, `final_score`, and `reasons_json` (containing the rank, explanation, and score breakdown).
+- **Idempotency:** The ranking workflow uses an **upsert strategy**. Rerunning the `rank` command for the same job and candidate updates the existing match record instead of creating duplicates.
 
-## 5) Database Optimizations
+## 5) Database and Script Optimizations
 
-As part of Phase 4, the following schema changes were applied:
+As part of Phase 4, the following changes were applied:
 - **Dropped `owner_type` from `embeddings`:** Since the ATS currently only embeds `resume_section`s, this column was redundant.
-- **Added `signals_json` to `resumes`:** To store structured LLM extractions.
 - **Updated Indexes:** Modified `ix_embeddings_owner` and `ix_embeddings_model_dimensions_owner` to reflect the removal of `owner_type`.
+- **Maintenance Scripts:** Updated `scripts/backfill_section_embeddings.py`, `scripts/create_embedding_hnsw_indexes.py`, and `scripts/backfill_candidate_identity_v2.py` to remove references to the dropped `owner_type` column and ensure compatibility with the new schema.
 
-## 6) Tests and Validation
+## 6) Reliability and Logging
 
-- **Unit Tests:** Updated `tests/test_embedding_repository.py` and `tests/test_ingest_service.py` to reflect schema changes and mock the new LLM extraction calls.
+- **Model Aliases:** Added `ranker_default` to `config/model_aliases.yaml`. By default, it uses `openai/gpt-4o-mini` for high-quality, stable qualitative assessments, with local fallbacks.
+- **Resilient Configuration:** Increased LLM timeouts to 60 seconds and retries to 3 to handle potential model latency during reranking.
+- **Robust Logging:** Implemented a `RunIDFilter` in `src/core/logging.py` to prevent crashes when external libraries (like LiteLLM) emit logs without the required `run_id` field.
+- **Unit Tests:** Updated `tests/storage/test_embedding_repository.py` and `tests/ingest/test_ingest_service.py` to reflect schema changes and mock the new LLM extraction calls.
 - **CLI Validation:** The `ats ingest-job` and `ats rank` commands provide colored console output for immediate feedback.
 
 ## 7) Future Work (Stage 5+)

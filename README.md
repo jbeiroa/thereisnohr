@@ -52,6 +52,8 @@ Implemented now:
 - **Hybrid Retrieval & Ranking Pipeline:** Multi-stage funnel (Vector Retrieval -> Deterministic Scoring -> LLM Reranking).
 - **Job Posting Ingestion:** Structured requirement extraction from job descriptions.
 - **Candidate Signal Extraction:** Automatic derivation of skills and experience from parsed resumes.
+- **Ranking Idempotency:** Upsert strategy for candidate-to-job matches.
+- **Improved Reliability:** Robust logging filters, increased LLM timeouts, and refined model aliases for ranking.
 
 Not implemented yet (planned in Stage 5+):
 

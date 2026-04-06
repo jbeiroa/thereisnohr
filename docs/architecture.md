@@ -27,9 +27,11 @@ Functional flow:
 
 What exists now:
 
-- complete implementation for steps 1-5,
+- complete implementation for steps 1-6,
 - durable DB schema for storage and matching history,
 - operational primitives (config/logging/CLI/API/tests).
+- production-grade reranking using `gpt-4o-mini` by default.
+- ranking idempotency via match upserts.
 
 ## 3) Module-by-module breakdown
 
