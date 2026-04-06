@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from src.ingest.parser import PDFResumeParser
 from src.ingest.service import IngestionService
-from src.extract.types import CandidateSignals, ExtractionDiagnostics
+from src.extract.types import CandidateSignals
 from src.llm.types import LLMCallMetadata, LLMUsage
 
 

@@ -39,7 +39,6 @@ def run(
             if resume_id is None:
                 session.execute(
                     delete(Embedding).where(
-                        Embedding.owner_type == "resume_section",
                         Embedding.model == target_model,
                     )
                 )
@@ -47,7 +46,6 @@ def run(
                 section_ids = select(ResumeSection.id).where(ResumeSection.resume_id == resume_id)
                 session.execute(
                     delete(Embedding).where(
-                        Embedding.owner_type == "resume_section",
                         Embedding.model == target_model,
                         Embedding.owner_id.in_(section_ids),
                     )
@@ -56,7 +54,7 @@ def run(
 
         existing = set(
             session.execute(
-                select(Embedding.owner_id, Embedding.model).where(Embedding.owner_type == "resume_section")
+                select(Embedding.owner_id, Embedding.model)
             ).all()
         )
 
@@ -82,7 +80,6 @@ def run(
                     skipped += 1
                     continue
                 repo.create(
-                    owner_type="resume_section",
                     owner_id=int(section.id),
                     model=model,
                     vector=[float(v) for v in vectors[0]],

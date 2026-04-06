@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 import os
-from typing import Generator, Sequence, Union
+from typing import Generator
 from unittest.mock import MagicMock
 
 import pytest
@@ -63,8 +63,8 @@ def mock_default_llm_client() -> Generator[None, None, None]:
 
 pytest.importorskip("testcontainers.postgres")
 pytest.importorskip("docker")
-from docker.errors import DockerException
-from testcontainers.postgres import PostgresContainer
+from docker.errors import DockerException  # noqa: E402
+from testcontainers.postgres import PostgresContainer  # noqa: E402
 
 DEFAULT_INTEGRATION_POSTGRES_IMAGE = "pgvector/pgvector:pg16"
 

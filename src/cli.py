@@ -7,6 +7,7 @@ import typer
 from src.core.config import get_settings
 from src.core.logging import configure_logging, get_run_logger
 from src.ingest.service import IngestionService
+from src.ranking.workflow import RankingWorkflow
 from src.storage.db import get_session
 
 app = typer.Typer(help="thereisnohr ATS CLI")
@@ -59,9 +60,6 @@ def ingest_job_cmd(path: Path, title: str | None = typer.Option(None, help="Job 
         session.commit()
 
     typer.secho(f"Successfully ingested job posting (ID: {job_id})", fg=typer.colors.GREEN)
-
-
-from src.ranking.workflow import RankingWorkflow
 
 
 @app.command()

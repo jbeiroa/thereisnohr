@@ -56,17 +56,28 @@ class RankingWorkflow:
         # 5. Persist Results
         match_repo = MatchRepository(self.session)
         for r in ranked:
-            match_repo.create(
-                job_id=job_id,
-                candidate_id=r.candidate_id,
-                retrieval_score=next(s for cid, s in top_candidates if cid == r.candidate_id),
-                rerank_score=r.scores.llm_adjustment,
-                final_score=r.scores.final_score,
-                reasons_json={
+            existing = match_repo.get_by_job_and_candidate(job_id=job_id, candidate_id=r.candidate_id)
+            if existing:
+                existing.retrieval_score = next(s for cid, s in top_candidates if cid == r.candidate_id)
+                existing.rerank_score = r.scores.llm_adjustment
+                existing.final_score = r.scores.final_score
+                existing.reasons_json = {
                     "rank": r.rank,
                     "explanation": r.explanation.model_dump() if r.explanation else None,
                     "breakdown": r.scores.model_dump(),
-                },
-            )
+                }
+            else:
+                match_repo.create(
+                    job_id=job_id,
+                    candidate_id=r.candidate_id,
+                    retrieval_score=next(s for cid, s in top_candidates if cid == r.candidate_id),
+                    rerank_score=r.scores.llm_adjustment,
+                    final_score=r.scores.final_score,
+                    reasons_json={
+                        "rank": r.rank,
+                        "explanation": r.explanation.model_dump() if r.explanation else None,
+                        "breakdown": r.scores.model_dump(),
+                    },
+                )
 
         return ranked

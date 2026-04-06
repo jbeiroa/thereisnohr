@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 
-from src.extract.types import CandidateSignals, JobRequirements
 from src.llm.client import LLMClient
 from src.llm.factory import build_default_llm_client
 from src.ranking.types import RankedCandidate, RankExplanation, RankInput, ScoreBreakdown
@@ -92,6 +91,8 @@ class RankingService:
         """Optionally rerank top candidates with LLM-generated adjustments/explanations."""
         results: list[tuple[float, RankExplanation | None]] = []
         client = self._resolve_llm_client()
+        from src.core.logging import get_run_logger
+        log = get_run_logger(__name__)
         
         # Map inputs for easy lookup
         input_map = {inp.candidate_id: inp for inp in all_inputs}
@@ -115,7 +116,8 @@ class RankingService:
                 # For now, we stub the adjustment as 0.0 unless we want to extend RankExplanation to include a score.
                 # Let's assume the LLM just provides the qualitative explanation for now.
                 results.append((0.0, explanation))
-            except Exception:
+            except Exception as e:
+                log.error(f"Failed reranking for candidate {cand.candidate_id}: {e}")
                 results.append((0.0, None))
                 
         return results

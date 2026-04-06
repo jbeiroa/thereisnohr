@@ -63,7 +63,7 @@ class RetrievalService:
 
         # We use explicit bindparam to handle vector casting safely
         sql = text(
-            f"""
+            """
             SELECT r.candidate_id, MAX(1 - (e.vector <=> cast(:query_vector as vector))) as score
             FROM embeddings e
             JOIN resume_sections rs ON rs.id = e.owner_id
