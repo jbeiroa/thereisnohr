@@ -51,3 +51,9 @@ fused_model/
 **/cache/
 **/huggingface/
 **/transformers_cache/
+
+# gemini-cli settings
+.gemini/
+
+# GitHub Actions credentials
+gha-creds-*.json

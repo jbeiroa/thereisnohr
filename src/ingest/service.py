@@ -13,9 +13,11 @@ from src.ingest.model_fallback import LLMFallbackResolver
 from src.ingest.parser import PDFResumeParser
 from src.llm.client import LLMClient
 from src.llm.factory import build_default_llm_client
+from src.extract.service import ExtractionService
 from src.storage.repositories import (
     CandidateRepository,
     EmbeddingRepository,
+    JobPostingRepository,
     ResumeRepository,
     ResumeSectionRepository,
 )
@@ -154,6 +156,11 @@ class IngestionService:
         section_payloads = self._build_section_payloads(parsed=parsed, resume_id=0)
         effective_section_names = list(dict.fromkeys(payload["section_type"] for payload in section_payloads))
 
+        # Extract structured candidate signals from parsed sections
+        extraction_service = ExtractionService(llm_client=self._resolve_llm_client() or build_default_llm_client())
+        sections_dict = {p["section_type"]: p["content"] for p in section_payloads}
+        candidate_signals = extraction_service.extract_candidate_signals(sections_dict)
+
         resume = resume_repo.create(
             candidate_id=candidate.id,
             source_file=parsed.source_file,
@@ -173,6 +180,7 @@ class IngestionService:
                     "signals": identity.signals,
                 },
             },
+            signals_json=candidate_signals.model_dump(),
             language=parsed.language,
         )
 
@@ -215,6 +223,28 @@ class IngestionService:
             identity_confidence=identity.confidence,
             avg_section_confidence=avg_section_confidence,
         )
+
+    def ingest_job(self, title: str, description: str, session: Session) -> int:
+        """Extracts requirements and persists a new job posting.
+
+        Args:
+            title (str): Job title.
+            description (str): Full JD text.
+            session (Session): DB session.
+
+        Returns:
+            int: The ID of the created job posting.
+        """
+        extraction_service = ExtractionService(llm_client=self._resolve_llm_client() or build_default_llm_client())
+        requirements = extraction_service.extract_job_requirements(description)
+
+        repo = JobPostingRepository(session)
+        job = repo.create(
+            title=title,
+            description=description,
+            requirements_json=requirements.model_dump(),
+        )
+        return int(job.id)
 
     def _build_section_payloads(self, *, parsed: ParsedResume, resume_id: int) -> list[dict]:
         """Builds normalized section payloads ready for database persistence.
@@ -373,7 +403,6 @@ class IngestionService:
         try:
             for (section_id, content), vector in zip(candidates, vectors):
                 embedding_repo.create(
-                    owner_type="resume_section",
                     owner_id=section_id,
                     model=selected_model,
                     vector=vector,

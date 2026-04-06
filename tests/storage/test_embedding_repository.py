@@ -26,7 +26,6 @@ def test_embedding_repository_registers_model_dimensions_on_first_write() -> Non
     repo = EmbeddingRepository(session=session)  # type: ignore[arg-type]
 
     row = repo.create(
-        owner_type="resume_section",
         owner_id=1,
         model="openai/text-embedding-3-small",
         vector=[0.1, 0.2, 0.3],
@@ -48,7 +47,6 @@ def test_embedding_repository_rejects_dimension_mismatch_for_existing_model() ->
 
     with pytest.raises(ValueError, match="expects 1536 dimensions"):
         repo.create(
-            owner_type="resume_section",
             owner_id=1,
             model="openai/text-embedding-3-small",
             vector=[0.1, 0.2],

@@ -181,12 +181,11 @@ Stores role definition and structured requirement payloads used in matching.
 5. Flat `src/` for iteration speed
 - Keeps the code easy to navigate while domain model stabilizes.
 
-## 9) Known limitations in Stage 0/1
+## 9) Known limitations
 
-- Ingestion pipeline is implemented, but extraction is still stubbed.
-- Stage 2 LiteLLM adapter is wired into ingestion fallbacks and embeddings, but not into extraction/ranking flows yet.
-- No retrieval/ranking scoring logic yet.
-- No end-user API surface yet beyond healthcheck.
+- The system currently focuses on CLI-based operations; the API surface is minimal (healthcheck only).
+- Web-based recruiter dashboard is not yet implemented.
+- Ranking heuristics (Deterministic score) are currently focused on hard-skill overlap and vector similarity.
 
 These are deliberate: this stage secures the foundation before introducing model and ranking complexity.
 

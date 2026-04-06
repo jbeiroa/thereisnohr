@@ -198,6 +198,8 @@ class LiteLLMClient(LLMClient):
         if max_tokens is not None:
             call_kwargs["max_tokens"] = max_tokens
 
+        schema_json = json.dumps(schema.model_json_schema(), indent=2)
+
         try:
             response = router.completion(
                 model=model_alias,
@@ -205,8 +207,9 @@ class LiteLLMClient(LLMClient):
                     {
                         "role": "system",
                         "content": (
-                            "Return valid JSON only. Match the requested schema exactly. "
-                            "Do not include markdown fences."
+                            "Return valid JSON only. Match the following JSON schema exactly:\n"
+                            f"```json\n{schema_json}\n```\n"
+                            "Do not include markdown fences in your output."
                         ),
                     },
                     {"role": "user", "content": prompt},
@@ -223,8 +226,9 @@ class LiteLLMClient(LLMClient):
 
         payload = _coerce_mapping(response)
         raw_text = _extract_text(payload)
+        clean_text = _clean_json_output(raw_text)
         try:
-            data = json.loads(raw_text)
+            data = json.loads(clean_text)
         except json.JSONDecodeError as exc:
             raise LLMStructuredOutputError(str(exc)) from exc
         try:
@@ -302,6 +306,8 @@ class LiteLLMClient(LLMClient):
         if max_tokens is not None:
             call_kwargs["max_tokens"] = max_tokens
 
+        schema_json = json.dumps(schema.model_json_schema(), indent=2)
+
         try:
             response = await router.acompletion(
                 model=model_alias,
@@ -309,8 +315,9 @@ class LiteLLMClient(LLMClient):
                     {
                         "role": "system",
                         "content": (
-                            "Return valid JSON only. Match the requested schema exactly. "
-                            "Do not include markdown fences."
+                            "Return valid JSON only. Match the following JSON schema exactly:\n"
+                            f"```json\n{schema_json}\n```\n"
+                            "Do not include markdown fences in your output."
                         ),
                     },
                     {"role": "user", "content": prompt},
@@ -327,8 +334,9 @@ class LiteLLMClient(LLMClient):
 
         payload = _coerce_mapping(response)
         raw_text = _extract_text(payload)
+        clean_text = _clean_json_output(raw_text)
         try:
-            data = json.loads(raw_text)
+            data = json.loads(clean_text)
         except json.JSONDecodeError as exc:
             raise LLMStructuredOutputError(str(exc)) from exc
         try:
@@ -436,6 +444,20 @@ def _extract_text(response_payload: Mapping[str, Any]) -> str:
             return "".join(fragments)
 
     raise LLMStructuredOutputError("Completion response message content is missing or unsupported")
+
+
+def _clean_json_output(text: str) -> str:
+    """Strips markdown fences and leading/trailing whitespace from JSON text."""
+    text = text.strip()
+    if text.startswith("```"):
+        first_newline = text.find("\n")
+        if first_newline != -1:
+            text = text[first_newline + 1 :]
+        else:
+            text = text[3:]
+    if text.endswith("```"):
+        text = text[:-3]
+    return text.strip()
 
 
 def _coerce_mapping(response: Any) -> Mapping[str, Any]:

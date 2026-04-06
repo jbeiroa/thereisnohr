@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
 
 from src.core.config import get_settings
@@ -20,7 +20,7 @@ class RetrievalService:
     llm_client: LLMClient | None = None
     registry: ModelAliasRegistry | None = None
 
-    def top_k(self, job_description: str, k: int, embedding_model_alias: str | None = None) -> list[int]:
+    def top_k(self, job_description: str, k: int, embedding_model_alias: str | None = None) -> list[tuple[int, float]]:
         """Runs top k logic.
 
         Args:
@@ -29,7 +29,7 @@ class RetrievalService:
             embedding_model_alias (str | None): Optional embedding alias override.
 
         Returns:
-            list[int]: Ordered list produced by this operation.
+            list[tuple[int, float]]: Ordered list of (candidate_id, score) produced by this operation.
         """
         if k <= 0:
             return []
@@ -55,36 +55,35 @@ class RetrievalService:
             return self.llm_client
         return build_default_llm_client()
 
-    def _query_top_candidates(self, *, model: str, query_vector: list[float], k: int) -> list[int]:
+    def _query_top_candidates(self, *, model: str, query_vector: list[float], k: int) -> list[tuple[int, float]]:
         """Queries top candidate ids for one model+dimension embedding space."""
         session = self.session or get_session()
         close_session = self.session is None
         dimension = len(query_vector)
+
+        # We use explicit bindparam to handle vector casting safely
         sql = text(
-            f"""
-            SELECT r.candidate_id
+            """
+            SELECT r.candidate_id, MAX(1 - (e.vector <=> cast(:query_vector as vector))) as score
             FROM embeddings e
             JOIN resume_sections rs ON rs.id = e.owner_id
             JOIN resumes r ON r.id = rs.resume_id
-            WHERE e.owner_type = 'resume_section'
-              AND e.model = :model
+            WHERE e.model = :model
               AND e.dimensions = :dimensions
             GROUP BY r.candidate_id
-            ORDER BY MAX(1 - ((e.vector::vector({dimension})) <=> (:query_vector::vector({dimension})))) DESC
+            ORDER BY score DESC
             LIMIT :k
             """
+        ).bindparams(
+            bindparam("query_vector", value=query_vector),
+            bindparam("model", value=model),
+            bindparam("dimensions", value=dimension),
+            bindparam("k", value=k),
         )
+
         try:
-            rows = session.execute(
-                sql,
-                {
-                    "model": model,
-                    "dimensions": dimension,
-                    "query_vector": query_vector,
-                    "k": k,
-                },
-            ).fetchall()
-            return [int(row[0]) for row in rows]
+            rows = session.execute(sql).fetchall()
+            return [(int(row[0]), float(row[1])) for row in rows]
         finally:
             if close_session:
                 session.close()

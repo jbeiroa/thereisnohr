@@ -31,8 +31,8 @@ class Settings(BaseSettings):
     explainer_model_alias: str = "explainer_default"
     openai_api_key: str | None = None
 
-    llm_timeout_seconds: float = 30.0
-    llm_max_retries: int = 2
+    llm_timeout_seconds: float = 60.0
+    llm_max_retries: int = 3
     ingest_flow_metrics_enabled: bool = True
     ingest_enable_name_model_fallback: bool = True
     ingest_enable_section_model_fallback: bool = True

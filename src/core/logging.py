@@ -4,16 +4,33 @@ import logging
 import uuid
 
 
+class RunIDFilter(logging.Filter):
+    """Adds a default run_id to records if missing."""
+
+    def filter(self, record):
+        if not hasattr(record, "run_id"):
+            record.run_id = "global"
+        return True
+
+
 def configure_logging(level: str = "INFO") -> None:
     """Runs configure logging logic.
 
     Args:
         level (str): Input value used by `level`.
     """
-    logging.basicConfig(
-        level=level.upper(),
-        format="%(asctime)s %(levelname)s run_id=%(run_id)s %(name)s %(message)s",
+    handler = logging.StreamHandler()
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s run_id=%(run_id)s %(name)s %(message)s")
     )
+    handler.addFilter(RunIDFilter())
+
+    root = logging.getLogger()
+    root.setLevel(level.upper())
+    # Clear existing handlers
+    for h in root.handlers[:]:
+        root.removeHandler(h)
+    root.addHandler(handler)
 
 
 class RunLoggerAdapter(logging.LoggerAdapter):

@@ -39,6 +39,7 @@ class Resume(Base):
     content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
     parsed_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    signals_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     language: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
@@ -83,7 +84,6 @@ class Embedding(Base):
     __tablename__ = "embeddings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    owner_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     owner_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
     dimensions: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -101,8 +101,8 @@ class Embedding(Base):
             ["embedding_models.model", "embedding_models.dimensions"],
             name="fk_embeddings_model_dimensions",
         ),
-        Index("ix_embeddings_owner", "owner_type", "owner_id"),
-        Index("ix_embeddings_model_dimensions_owner", "model", "dimensions", "owner_type", "owner_id"),
+        Index("ix_embeddings_owner", "owner_id"),
+        Index("ix_embeddings_model_dimensions_owner", "model", "dimensions", "owner_id"),
     )
 
 

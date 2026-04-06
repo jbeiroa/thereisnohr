@@ -10,13 +10,10 @@ from sqlalchemy import text
 from src.storage.db import get_session
 
 
-DEFAULT_OWNER_TYPES = ("resume_section", "job_posting")
-
-
-def _index_name(*, model: str, dimensions: int, owner_type: str) -> str:
+def _index_name(*, model: str, dimensions: int) -> str:
     """Builds a short deterministic index name within Postgres length limits."""
     digest = hashlib.sha1(model.encode("utf-8")).hexdigest()[:8]
-    return f"ix_emb_hnsw_{owner_type}_{dimensions}_{digest}"
+    return f"ix_emb_hnsw_{dimensions}_{digest}"
 
 
 def _escape_literal(value: str) -> str:
@@ -24,7 +21,7 @@ def _escape_literal(value: str) -> str:
     return value.replace("'", "''")
 
 
-def run(*, owner_types: tuple[str, ...]) -> int:
+def run() -> int:
     """Creates missing HNSW indexes for each model+dimension pair."""
     session = get_session()
     created = 0
@@ -35,17 +32,15 @@ def run(*, owner_types: tuple[str, ...]) -> int:
         for model, dimensions in rows:
             model_str = str(model)
             dim = int(dimensions)
-            for owner_type in owner_types:
-                idx = _index_name(model=model_str, dimensions=dim, owner_type=owner_type)
-                sql = (
-                    f"CREATE INDEX IF NOT EXISTS {idx} "
-                    f"ON embeddings USING hnsw ((vector::vector({dim})) vector_cosine_ops) "
-                    f"WHERE model = '{_escape_literal(model_str)}' "
-                    f"AND dimensions = {dim} "
-                    f"AND owner_type = '{_escape_literal(owner_type)}'"
-                )
-                session.execute(text(sql))
-                created += 1
+            idx = _index_name(model=model_str, dimensions=dim)
+            sql = (
+                f"CREATE INDEX IF NOT EXISTS {idx} "
+                f"ON embeddings USING hnsw ((vector::vector({dim})) vector_cosine_ops) "
+                f"WHERE model = '{_escape_literal(model_str)}' "
+                f"AND dimensions = {dim}"
+            )
+            session.execute(text(sql))
+            created += 1
         session.commit()
         print(f"indexes_attempted={created}")
         return 0
@@ -56,15 +51,8 @@ def run(*, owner_types: tuple[str, ...]) -> int:
 def main() -> int:
     """Parses CLI options and executes the index creation script."""
     parser = argparse.ArgumentParser(description="Create model-scoped HNSW indexes for embeddings.")
-    parser.add_argument(
-        "--owner-type",
-        action="append",
-        dest="owner_types",
-        help="Owner type to index (repeatable). Defaults to resume_section and job_posting.",
-    )
-    args = parser.parse_args()
-    owner_types = tuple(args.owner_types) if args.owner_types else DEFAULT_OWNER_TYPES
-    return run(owner_types=owner_types)
+    parser.parse_args()
+    return run()
 
 
 if __name__ == "__main__":

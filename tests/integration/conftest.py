@@ -2,17 +2,69 @@ from __future__ import annotations
 
 import importlib
 import os
-from collections.abc import Generator
+from typing import Generator
+from unittest.mock import MagicMock
 
 import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
 
+from src.extract.types import CandidateSignals
+from src.llm.types import LLMCallMetadata, LLMUsage
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_default_llm_client() -> Generator[None, None, None]:
+    """Globally mocks build_default_llm_client to return a FakeLLM instance."""
+    import src.llm.factory as llm_factory
+    import src.ingest.service as ingest_service
+
+    class FakeLLM:
+        def generate_structured_with_meta(self, prompt, schema, model_alias, **kwargs):
+            if schema == CandidateSignals:
+                result = CandidateSignals(skills=["Python"])
+            else:
+                # Use a more predictable mock for other schemas
+                result = MagicMock(spec=schema)
+            meta = LLMCallMetadata(
+                model_alias=model_alias,
+                selected_model="fake-model",
+                usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+            return result, meta
+
+        def embed_with_meta(self, texts, embedding_model_alias):
+            vectors = [[0.1] * 1536 for _ in texts]
+            meta = LLMCallMetadata(
+                model_alias=embedding_model_alias,
+                selected_model="fake-embedding-model",
+                usage=LLMUsage(estimated_cost_usd=0.0001),
+            )
+            return vectors, meta
+
+        def embed(self, texts, embedding_model_alias):
+            vectors, _ = self.embed_with_meta(texts, embedding_model_alias)
+            return vectors
+
+        def generate_structured(self, prompt, schema, model_alias, **kwargs):
+            result, _ = self.generate_structured_with_meta(prompt, schema, model_alias, **kwargs)
+            return result
+
+    fake_client = FakeLLM()
+    with pytest.MonkeyPatch().context() as mp:
+        mp.setattr(llm_factory, "build_default_llm_client", lambda: fake_client)
+        # Also patch where it might have been imported already
+        if hasattr(ingest_service, "build_default_llm_client"):
+            mp.setattr(ingest_service, "build_default_llm_client", lambda: fake_client)
+        
+        yield
+
+
 pytest.importorskip("testcontainers.postgres")
 pytest.importorskip("docker")
-from docker.errors import DockerException
-from testcontainers.postgres import PostgresContainer
+from docker.errors import DockerException  # noqa: E402
+from testcontainers.postgres import PostgresContainer  # noqa: E402
 
 DEFAULT_INTEGRATION_POSTGRES_IMAGE = "pgvector/pgvector:pg16"
 

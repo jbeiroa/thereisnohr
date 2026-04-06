@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from src.ingest.identity import estimate_name_quality, normalize_email, normalize_phone
 from src.storage.db import get_session
-from src.storage.models import Candidate, Embedding, Match, Resume
+from src.storage.models import Candidate, Match, Resume
 
 
 def _link_list(value: list[str] | dict | None) -> list[str]:
@@ -70,7 +70,7 @@ def run_backfill(*, apply: bool) -> int:
     """Merges duplicate candidates that share email/phone identity keys.
 
     The script chooses a canonical candidate per duplicate group, reassigns
-    related rows (resumes, matches, embeddings), and deletes duplicate rows.
+    related rows (resumes, matches), and deletes duplicate rows.
 
     Args:
         apply (bool): When true commits DB changes; when false performs a dry run.
@@ -94,7 +94,6 @@ def run_backfill(*, apply: bool) -> int:
         merged_candidates = 0
         moved_resumes = 0
         moved_matches = 0
-        moved_candidate_embeddings = 0
 
         for key, rows in sorted(merge_groups.items()):
             canonical = sorted(rows, key=lambda row: _candidate_rank(row, resume_counts), reverse=True)[0]
@@ -128,11 +127,6 @@ def run_backfill(*, apply: bool) -> int:
                     .filter(Match.candidate_id == dup.id)
                     .update({"candidate_id": canonical.id}, synchronize_session=False)
                 )
-                moved_candidate_embeddings += (
-                    session.query(Embedding)
-                    .filter(Embedding.owner_type == "candidate", Embedding.owner_id == dup.id)
-                    .update({"owner_id": canonical.id}, synchronize_session=False)
-                )
                 session.delete(dup)
                 merged_candidates += 1
 
@@ -145,7 +139,6 @@ def run_backfill(*, apply: bool) -> int:
         print(f"merged_candidates={merged_candidates}")
         print(f"moved_resumes={moved_resumes}")
         print(f"moved_matches={moved_matches}")
-        print(f"moved_candidate_embeddings={moved_candidate_embeddings}")
 
         if apply:
             session.commit()

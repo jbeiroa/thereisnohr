@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from src.ingest.parser import PDFResumeParser
 from src.ingest.service import IngestionService
+from src.extract.types import CandidateSignals
 from src.llm.types import LLMCallMetadata, LLMUsage
 
 
@@ -96,7 +97,7 @@ def test_ingest_links_multiple_resumes_to_same_candidate(monkeypatch) -> None:
                     return type("Resume", (), resume)
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, language=None):
+        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
             resume = {
                 "id": len(_Store.resumes) + 1,
                 "candidate_id": candidate_id,
@@ -104,6 +105,7 @@ def test_ingest_links_multiple_resumes_to_same_candidate(monkeypatch) -> None:
                 "content_hash": content_hash,
                 "raw_text": raw_text,
                 "parsed_json": parsed_json,
+                "signals_json": signals_json,
                 "language": language,
             }
             _Store.resumes.append(resume)
@@ -128,8 +130,14 @@ def test_ingest_links_multiple_resumes_to_same_candidate(monkeypatch) -> None:
     monkeypatch.setattr("src.ingest.service.ResumeRepository", FakeResumeRepository)
     monkeypatch.setattr("src.ingest.service.ResumeSectionRepository", FakeResumeSectionRepository)
 
+    class FakeLLM:
+        def generate_structured_with_meta(self, prompt, schema, model_alias, **kwargs):
+            result = CandidateSignals(skills=["Python"])
+            meta = LLMCallMetadata(model_alias=model_alias, usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+            return result, meta
+
     parsed_iter = iter([parsed_one, parsed_two])
-    service = IngestionService()
+    service = IngestionService(llm_client=FakeLLM())
     monkeypatch.setattr(service, "parse_pdf", lambda path: next(parsed_iter))
 
     first = service.ingest_pdf(Path("/tmp/resume_one.pdf"), session=object())
@@ -187,8 +195,8 @@ def test_ingest_merges_candidate_links(monkeypatch) -> None:
         def get_by_content_hash(self, content_hash):
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, language=None):
-            resume = {"id": len(_Store.resumes) + 1, "candidate_id": candidate_id}
+        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
+            resume = {"id": len(_Store.resumes) + 1, "candidate_id": candidate_id, "signals_json": signals_json}
             _Store.resumes.append(resume)
             return type("Resume", (), resume)
 
@@ -202,8 +210,15 @@ def test_ingest_merges_candidate_links(monkeypatch) -> None:
     monkeypatch.setattr("src.ingest.service.CandidateRepository", FakeCandidateRepository)
     monkeypatch.setattr("src.ingest.service.ResumeRepository", FakeResumeRepository)
     monkeypatch.setattr("src.ingest.service.ResumeSectionRepository", FakeResumeSectionRepository)
+
+    class FakeLLM:
+        def generate_structured_with_meta(self, prompt, schema, model_alias, **kwargs):
+            result = CandidateSignals(skills=["Python"])
+            meta = LLMCallMetadata(model_alias=model_alias, usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+            return result, meta
+
     parsed_iter = iter([parsed_one, parsed_two])
-    service = IngestionService(enable_name_model_fallback=False, enable_section_model_fallback=False)
+    service = IngestionService(llm_client=FakeLLM(), enable_name_model_fallback=False, enable_section_model_fallback=False)
     monkeypatch.setattr(service, "parse_pdf", lambda path: next(parsed_iter))
 
     service.ingest_pdf(Path("/tmp/resume_one.pdf"), session=object())
@@ -227,6 +242,16 @@ def test_section_model_promotion_applies_threshold(monkeypatch) -> None:
                     {"section_type": "skills", "confidence": 0.93, "reason": "contains skill terms"}
                 )
             return schema.model_validate({"name": "John Doe", "confidence": 0.95, "reason": "header"})
+
+        def generate_structured_with_meta(self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs):
+            if schema == CandidateSignals:
+                result = CandidateSignals(skills=["Python"])
+                meta = LLMCallMetadata(
+                    model_alias=model_alias,
+                    usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+                )
+                return result, meta
+            return self.generate_structured(prompt, schema, model_alias, **kwargs), LLMCallMetadata(model_alias=model_alias)
 
         def embed(self, texts, embedding_model_alias):
             return []
@@ -255,8 +280,8 @@ def test_section_model_promotion_applies_threshold(monkeypatch) -> None:
         def get_by_content_hash(self, content_hash):
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, language=None):
-            resume = {"id": 1, "candidate_id": candidate_id, "parsed_json": parsed_json}
+        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
+            resume = {"id": 1, "candidate_id": candidate_id, "parsed_json": parsed_json, "signals_json": signals_json}
             _Store.resumes.append(resume)
             return type("Resume", (), resume)
 
@@ -305,6 +330,14 @@ def test_ingest_persists_non_skill_section_embeddings(monkeypatch) -> None:
             )
             return [[0.1, 0.2]], meta
 
+        def generate_structured_with_meta(self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs):
+            result = CandidateSignals(skills=["Python"])
+            meta = LLMCallMetadata(
+                model_alias=model_alias,
+                usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+            return result, meta
+
     class _Store:
         resumes: list[SimpleNamespace] = []
         sections: list[dict] = []
@@ -328,8 +361,8 @@ def test_ingest_persists_non_skill_section_embeddings(monkeypatch) -> None:
         def get_by_content_hash(self, content_hash):
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, language=None):
-            resume = SimpleNamespace(id=1, candidate_id=candidate_id, parsed_json=parsed_json)
+        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
+            resume = SimpleNamespace(id=1, candidate_id=candidate_id, parsed_json=parsed_json, signals_json=signals_json)
             _Store.resumes.append(resume)
             return resume
 
@@ -346,9 +379,8 @@ def test_ingest_persists_non_skill_section_embeddings(monkeypatch) -> None:
         def __init__(self, session):
             self.session = session
 
-        def create(self, *, owner_type, owner_id, model, vector, text_hash):
+        def create(self, *, owner_id, model, vector, text_hash):
             row = {
-                "owner_type": owner_type,
                 "owner_id": owner_id,
                 "model": model,
                 "vector": vector,
@@ -372,7 +404,6 @@ def test_ingest_persists_non_skill_section_embeddings(monkeypatch) -> None:
     result = service.ingest_pdf(Path("/tmp/resume_embeddings.pdf"), session=object())
     assert result.status == "ingested"
     assert len(_Store.embeddings) == 1
-    assert _Store.embeddings[0]["owner_type"] == "resume_section"
     assert _Store.embeddings[0]["owner_id"] == 1
     assert _Store.embeddings[0]["model"] == "openai/text-embedding-3-small"
     embedding_meta = _Store.resumes[0].parsed_json["embedding"]
@@ -391,6 +422,14 @@ def test_ingest_soft_fails_when_embedding_call_errors(monkeypatch) -> None:
     class FakeLLM:
         def embed_with_meta(self, texts, embedding_model_alias):
             raise RuntimeError("embedding provider unavailable")
+
+        def generate_structured_with_meta(self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs):
+            result = CandidateSignals(skills=["Python"])
+            meta = LLMCallMetadata(
+                model_alias=model_alias,
+                usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+            return result, meta
 
     class _Store:
         resumes: list[SimpleNamespace] = []
@@ -415,8 +454,8 @@ def test_ingest_soft_fails_when_embedding_call_errors(monkeypatch) -> None:
         def get_by_content_hash(self, content_hash):
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, language=None):
-            resume = SimpleNamespace(id=1, candidate_id=candidate_id, parsed_json=parsed_json)
+        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
+            resume = SimpleNamespace(id=1, candidate_id=candidate_id, parsed_json=parsed_json, signals_json=signals_json)
             _Store.resumes.append(resume)
             return resume
 
@@ -433,9 +472,8 @@ def test_ingest_soft_fails_when_embedding_call_errors(monkeypatch) -> None:
         def __init__(self, session):
             self.session = session
 
-        def create(self, *, owner_type, owner_id, model, vector, text_hash):
+        def create(self, *, owner_id, model, vector, text_hash):
             row = {
-                "owner_type": owner_type,
                 "owner_id": owner_id,
                 "model": model,
                 "vector": vector,

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from src.extract.types import CandidateSignals
 from src.ingest.service import IngestionService
 from src.llm.types import LLMCallMetadata
 from src.storage import models
@@ -158,6 +159,15 @@ def test_non_skill_section_embeddings_persisted(db_session, tmp_path: Path) -> N
             )
             return vectors, meta
 
+        def generate_structured_with_meta(self, prompt, schema, model_alias):
+            # Just return an empty signals instance
+            result = CandidateSignals()
+            meta = LLMCallMetadata(
+                model_alias=model_alias,
+                selected_model="some-model",
+            )
+            return result, meta
+
     service = IngestionService(
         parser=parser,
         llm_client=FakeLLM(),
@@ -175,6 +185,5 @@ def test_non_skill_section_embeddings_persisted(db_session, tmp_path: Path) -> N
 
     embeddings = db_session.query(models.Embedding).all()
     assert len(embeddings) == len(non_skill_ids)
-    assert {row.owner_type for row in embeddings} == {"resume_section"}
     assert {row.owner_id for row in embeddings} == non_skill_ids
     assert not ({row.owner_id for row in embeddings} & skill_ids)

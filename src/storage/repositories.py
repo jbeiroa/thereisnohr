@@ -198,17 +198,18 @@ class JobPostingRepository:
 
     session: Session
 
-    def create(self, title: str, description: str) -> models.JobPosting:
+    def create(self, title: str, description: str, requirements_json: dict | None = None) -> models.JobPosting:
         """Creates and flushes a new persistence model row.
 
         Args:
             title (str): Human-readable job title.
             description (str): Full job-description text for scoring/retrieval.
+            requirements_json (dict | None): Structured requirements extracted from the JD.
 
         Returns:
             models.JobPosting: Persisted ORM instance returned after flush.
         """
-        job = models.JobPosting(title=title, description=description)
+        job = models.JobPosting(title=title, description=description, requirements_json=requirements_json)
         self.session.add(job)
         self.session.flush()
         return job
@@ -242,6 +243,22 @@ class ResumeRepository:
         """
         return self.session.scalar(select(models.Resume).where(models.Resume.content_hash == content_hash))
 
+    def get_latest_resume_by_candidate_id(self, candidate_id: int) -> models.Resume | None:
+        """Returns the most recent resume for a candidate.
+
+        Args:
+            candidate_id (int): Candidate identifier.
+
+        Returns:
+            models.Resume | None: The latest resume record, if any.
+        """
+        return self.session.scalar(
+            select(models.Resume)
+            .where(models.Resume.candidate_id == candidate_id)
+            .order_by(models.Resume.created_at.desc())
+            .limit(1)
+        )
+
     def create(
         self,
         candidate_id: int,
@@ -250,6 +267,7 @@ class ResumeRepository:
         raw_text: str,
         *,
         parsed_json: dict | None = None,
+        signals_json: dict | None = None,
         language: str | None = None,
     ) -> models.Resume:
         """Creates and flushes a new persistence model row.
@@ -271,6 +289,7 @@ class ResumeRepository:
             content_hash=content_hash,
             raw_text=raw_text,
             parsed_json=parsed_json,
+            signals_json=signals_json,
             language=language,
         )
         self.session.add(resume)
@@ -326,7 +345,6 @@ class EmbeddingRepository:
     def create(
         self,
         *,
-        owner_type: str,
         owner_id: int,
         model: str,
         vector: list[float],
@@ -335,7 +353,6 @@ class EmbeddingRepository:
         """Creates and flushes one embedding row.
 
         Args:
-            owner_type (str): Entity type owning this embedding.
             owner_id (int): Entity identifier owning this embedding.
             model (str): Provider/model identifier used to generate the vector.
             vector (list[float]): Embedding vector payload.
@@ -360,7 +377,6 @@ class EmbeddingRepository:
             )
 
         embedding = models.Embedding(
-            owner_type=owner_type,
             owner_id=owner_id,
             model=model,
             dimensions=dimensions,
@@ -370,3 +386,60 @@ class EmbeddingRepository:
         self.session.add(embedding)
         self.session.flush()
         return embedding
+
+
+@dataclass
+class MatchRepository:
+    """Repository for querying and persisting match rows."""
+
+    session: Session
+
+    def create(
+        self,
+        job_id: int,
+        candidate_id: int,
+        retrieval_score: float | None = None,
+        rerank_score: float | None = None,
+        final_score: float | None = None,
+        reasons_json: dict | None = None,
+    ) -> models.Match:
+        """Creates and flushes a new match record.
+
+        Args:
+            job_id (int): Job identifier.
+            candidate_id (int): Candidate identifier.
+            retrieval_score (float | None): Score from vector retrieval.
+            rerank_score (float | None): Score from LLM reranking.
+            final_score (float | None): Combined final score.
+            reasons_json (dict | None): Structured explanations for the score.
+
+        Returns:
+            models.Match: Persisted ORM instance.
+        """
+        match = models.Match(
+            job_id=job_id,
+            candidate_id=candidate_id,
+            retrieval_score=retrieval_score,
+            rerank_score=rerank_score,
+            final_score=final_score,
+            reasons_json=reasons_json,
+        )
+        self.session.add(match)
+        self.session.flush()
+        return match
+
+    def get_by_job_and_candidate(self, job_id: int, candidate_id: int) -> models.Match | None:
+        """Finds an existing match for a job/candidate pair.
+
+        Args:
+            job_id (int): Job identifier.
+            candidate_id (int): Candidate identifier.
+
+        Returns:
+            models.Match | None: Matching record, if any.
+        """
+        return self.session.scalar(
+            select(models.Match)
+            .where(models.Match.job_id == job_id)
+            .where(models.Match.candidate_id == candidate_id)
+        )

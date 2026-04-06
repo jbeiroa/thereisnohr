@@ -1,7 +1,5 @@
 """Extraction-layer services and schemas for structured candidate/job signals."""
 
-from __future__ import annotations
-
 from pydantic import BaseModel, Field
 
 
