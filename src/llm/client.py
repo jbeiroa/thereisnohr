@@ -207,9 +207,8 @@ class LiteLLMClient(LLMClient):
                     {
                         "role": "system",
                         "content": (
-                            "Return valid JSON only. Match the following JSON schema exactly:\n"
-                            f"```json\n{schema_json}\n```\n"
-                            "Do not include markdown fences in your output."
+                            "You are a helpful assistant that strictly follows JSON schemas. "
+                            f"Generate a JSON response that matches this schema:\n{schema_json}"
                         ),
                     },
                     {"role": "user", "content": prompt},
@@ -315,9 +314,8 @@ class LiteLLMClient(LLMClient):
                     {
                         "role": "system",
                         "content": (
-                            "Return valid JSON only. Match the following JSON schema exactly:\n"
-                            f"```json\n{schema_json}\n```\n"
-                            "Do not include markdown fences in your output."
+                            "You are a helpful assistant that strictly follows JSON schemas. "
+                            f"Generate a JSON response that matches this schema:\n{schema_json}"
                         ),
                     },
                     {"role": "user", "content": prompt},

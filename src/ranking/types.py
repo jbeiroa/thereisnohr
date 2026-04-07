@@ -24,12 +24,27 @@ class ScoreBreakdown(BaseModel):
     missing_hard_skills: list[str] = Field(default_factory=list)
 
 
+class StrengthWithEvidence(BaseModel):
+    """Specific strength identified with a quote from the candidate's resume."""
+
+    skill_or_trait: str
+    resume_evidence_quote: str
+
+
+class GapOrRisk(BaseModel):
+    """Specific missing requirement or risk factor identified."""
+
+    missing_requirement: str
+    impact: str
+    uncertainty_hint: str
+
+
 class RankExplanation(BaseModel):
     """Human-readable rationale for the assigned score."""
 
-    summary: str
-    strengths: list[str] = Field(default_factory=list)
-    risks: list[str] = Field(default_factory=list)
+    evidence_based_summary: str
+    strengths_with_evidence: list[StrengthWithEvidence] = Field(default_factory=list)
+    gaps_and_risks: list[GapOrRisk] = Field(default_factory=list)
 
 
 class RankedCandidate(BaseModel):
@@ -39,3 +54,20 @@ class RankedCandidate(BaseModel):
     rank: int
     scores: ScoreBreakdown
     explanation: RankExplanation | None = None
+
+
+class InterviewPrepPack(BaseModel):
+    """Interview questions tailored to candidate fit and gaps."""
+
+    technical_questions: list[str] = Field(
+        default_factory=list,
+        description="3-5 deep technical questions about the candidate's core skills and experience.",
+    )
+    behavioral_questions: list[str] = Field(
+        default_factory=list,
+        description="2-3 questions about the candidate's soft skills and work history.",
+    )
+    clarification_questions: list[str] = Field(
+        default_factory=list,
+        description="Specific questions to clarify the gaps or risks identified in the ranking explanation.",
+    )

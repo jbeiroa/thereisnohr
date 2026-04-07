@@ -135,6 +135,7 @@ class Match(Base):
     rerank_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     final_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     reasons_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    interview_pack_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )

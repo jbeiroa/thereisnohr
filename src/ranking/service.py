@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from src.llm.client import LLMClient
 from src.llm.factory import build_default_llm_client
-from src.ranking.types import RankedCandidate, RankExplanation, RankInput, ScoreBreakdown
+from src.ranking.types import InterviewPrepPack, RankedCandidate, RankExplanation, RankInput, ScoreBreakdown
 
 
 @dataclass
@@ -101,10 +101,11 @@ class RankingService:
             inp = input_map[cand.candidate_id]
             prompt = (
                 "Evaluate the fit of this candidate for the job based on the extracted requirements and candidate signals.\n"
-                "Provide a human-readable explanation and an adjustment score between -0.2 and 0.2.\n\n"
-                f"Job Requirements: {inp.requirements.model_dump_json()}\n"
-                f"Candidate Signals: {inp.signals.model_dump_json()}\n"
-                "Return JSON matching the schema."
+                "Provide a human-readable, evidence-based summary. For each strength, cite a short quote from the candidate signals. "
+                "For gaps and risks, identify missing requirements, assess the impact, and provide a hint for how to clarify this uncertainty in an interview.\n\n"
+                f"Job Requirements:\n{inp.requirements.model_dump_json(indent=2)}\n\n"
+                f"Candidate Signals:\n{inp.signals.model_dump_json(indent=2)}\n\n"
+                "Return valid JSON matching the requested schema."
             )
             
             try:
@@ -121,3 +122,32 @@ class RankingService:
                 results.append((0.0, None))
                 
         return results
+
+    def generate_interview_pack(self, rank_input: RankInput, explanation: RankExplanation) -> InterviewPrepPack | None:
+        """Generate tailored interview preparation questions for a candidate."""
+        client = self._resolve_llm_client()
+        from src.core.logging import get_run_logger
+        log = get_run_logger(__name__)
+
+        prompt = (
+            "You are an expert technical interviewer. Generate a high-quality interview preparation pack for a candidate. "
+            "Your goal is to provide specific, challenging questions that help evaluate the candidate's fit for the role.\n\n"
+            "Requirements:\n"
+            "1. technical_questions: Generate 3-5 specific questions about the candidate's core technical skills and how they applied them in their experience.\n"
+            "2. behavioral_questions: Generate 2-3 questions about their past experience highlights and soft skills.\n"
+            "3. clarification_questions: Generate specific questions to address the 'gaps_and_risks' identified in the ranking explanation. Help the interviewer resolve these uncertainties.\n\n"
+            f"Job Requirements:\n{rank_input.requirements.model_dump_json(indent=2)}\n\n"
+            f"Candidate Signals:\n{rank_input.signals.model_dump_json(indent=2)}\n\n"
+            f"Candidate Ranking Explanation:\n{explanation.model_dump_json(indent=2)}\n\n"
+            "Return valid JSON matching the requested schema. Ensure all question lists are populated with detailed, tailored questions. Do not return empty lists."
+        )
+
+        try:
+            return client.generate_structured(
+                prompt=prompt,
+                schema=InterviewPrepPack,
+                model_alias="explainer_default",
+            )
+        except Exception as e:
+            log.error(f"Failed to generate interview pack for candidate {rank_input.candidate_id}: {e}")
+            return None

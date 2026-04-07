@@ -402,6 +402,7 @@ class MatchRepository:
         rerank_score: float | None = None,
         final_score: float | None = None,
         reasons_json: dict | None = None,
+        interview_pack_json: dict | None = None,
     ) -> models.Match:
         """Creates and flushes a new match record.
 
@@ -412,6 +413,7 @@ class MatchRepository:
             rerank_score (float | None): Score from LLM reranking.
             final_score (float | None): Combined final score.
             reasons_json (dict | None): Structured explanations for the score.
+            interview_pack_json (dict | None): Structured interview preparation pack.
 
         Returns:
             models.Match: Persisted ORM instance.
@@ -423,6 +425,7 @@ class MatchRepository:
             rerank_score=rerank_score,
             final_score=final_score,
             reasons_json=reasons_json,
+            interview_pack_json=interview_pack_json,
         )
         self.session.add(match)
         self.session.flush()
