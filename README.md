@@ -2,7 +2,7 @@
 
 `thereisnohr` is being rebuilt as a small, flexible, provider-agnostic Applicant Tracking System (ATS).
 
-This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), **Stage 2** (provider-agnostic LLM layer), **Stage 3** (ingestion/parsing slice), and **Stage 4** (retrieval and hybrid ranking).
+This branch implements **Stage 0** (foundation/scaffolding), **Stage 1** (durable ATS schema), **Stage 2** (provider-agnostic LLM layer), **Stage 3** (ingestion/parsing slice), **Stage 4** (retrieval and hybrid ranking), and **Stage 5** (explanations and interview preparation).
 
 ## Why this reengineering exists
 
@@ -12,22 +12,24 @@ The original project goal was resume selection automation for a specific school 
 - extract candidate signals,
 - index candidates for semantic retrieval,
 - rank top-k applicants,
-- produce transparent explanations for hiring decisions.
+- produce transparent, evidence-based explanations for hiring decisions,
+- generate tailored interview preparation packs.
 
-The first stages focused on reliability and architecture, while Stage 4 introduces the core matching intelligence:
+The first stages focused on reliability and architecture, while Stages 4 and 5 introduce the core matching and evaluation intelligence:
 
 - Stage 0 provides a clean runtime shape and testable boundaries.
 - Stage 1 provides data durability and query foundations (Postgres + pgvector).
 - Stage 4 provides the multi-stage ranking funnel (Vector + Deterministic + LLM).
+- Stage 5 provides grounded explanations and automated interview preparation.
 
-## Current capabilities (Stage 0/1/2/3/4 slice)
+## Current capabilities (Stage 0/1/2/3/4/5 slice)
 
 Implemented now:
 
 - flat `src/` code layout with explicit module boundaries,
 - typed environment configuration (`pydantic-settings`),
 - structured logging with per-run IDs,
-- CLI tools for ingestion and ranking (`ats ingest-job`, `ats rank`),
+- CLI tools for ingestion, ranking, and prep (`ats ingest-job`, `ats rank`, `ats prep`),
 - FastAPI app skeleton (`/health`),
 - SQLAlchemy models for ATS entities,
 - Alembic migrations and pgvector extension setup,
@@ -48,14 +50,16 @@ Implemented now:
 - optional model-based fallback for low-confidence name extraction (rules-first, threshold-gated).
 - run-level ingestion metrics/reporting artifacts in Metaflow (`run_report` + `run_metrics` card).
 - OCR-aware markdown extraction path via `pymupdf-layout` (active when system `tesseract` is available).
-- Stage 3/4 experimentation notebook suite under `notebooks/` (parser QA, ingestion service checks, repository smoke checks, LLM registry checks, and extraction testing).
+- Stage 3/4/5 experimentation notebook suite under `notebooks/` (parser QA, ingestion service checks, repository smoke checks, LLM registry checks, and extraction testing).
 - **Hybrid Retrieval & Ranking Pipeline:** Multi-stage funnel (Vector Retrieval -> Deterministic Scoring -> LLM Reranking).
 - **Job Posting Ingestion:** Structured requirement extraction from job descriptions.
 - **Candidate Signal Extraction:** Automatic derivation of skills and experience from parsed resumes.
+- **Evidence-Based Explanations:** Ranking rationales grounded in resume quotes and explicit gap/risk analysis.
+- **Automated Interview Prep:** Generation of technical, behavioral, and clarification questions tailored to candidate-job fit.
 - **Ranking Idempotency:** Upsert strategy for candidate-to-job matches.
 - **Improved Reliability:** Robust logging filters, increased LLM timeouts, and refined model aliases for ranking.
 
-Not implemented yet (planned in Stage 5+):
+Not implemented yet (planned in Stage 6+):
 
 - production API endpoints beyond healthcheck,
 - web UI for recruiters.

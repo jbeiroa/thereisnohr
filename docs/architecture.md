@@ -23,12 +23,13 @@ Functional flow:
 3. **Persist:** Structured data, signals, and embeddings (Postgres + pgvector).
 4. **Retrieve:** Vector search for semantic candidates.
 5. **Rank:** Hybrid scoring (Deterministic + LLM Reranking).
-6. **Explain:** AI-generated reasoning for match scores.
+6. **Explain:** AI-generated reasoning for match scores grounded in evidence.
+7. **Prepare:** Tailored interview question packs.
 
 What exists now:
 
-- complete implementation for steps 1-6,
-- durable DB schema for storage and matching history,
+- complete implementation for steps 1-7,
+- durable DB schema for storage and matching history (including `interview_pack_json`),
 - operational primitives (config/logging/CLI/API/tests).
 - production-grade reranking using `gpt-4o-mini` by default.
 - ranking idempotency via match upserts.
