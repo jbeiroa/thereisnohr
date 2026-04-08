@@ -34,7 +34,9 @@ class CandidateRepository:
         Returns:
             models.Candidate: Persisted ORM instance returned after flush.
         """
-        candidate = models.Candidate(name=name, email=email, phone=phone, external_id=external_id, links=links)
+        candidate = models.Candidate(
+            name=name, email=email, phone=phone, external_id=external_id, links=links
+        )
         self.session.add(candidate)
         self.session.flush()
         return candidate
@@ -86,7 +88,9 @@ class CandidateRepository:
                 name_confidence=name_confidence,
             )
             return existing, False
-        return self.create(name=name, email=email, phone=phone, external_id=external_id, links=links), True
+        return self.create(
+            name=name, email=email, phone=phone, external_id=external_id, links=links
+        ), True
 
     def get_or_create_by_identity_key(
         self,
@@ -150,10 +154,7 @@ class CandidateRepository:
         """
         existing_quality = _estimate_name_quality(candidate.name)
         incoming_quality = max(float(name_confidence or 0.0), _estimate_name_quality(name))
-        if name and (
-            not candidate.name
-            or (incoming_quality >= 0.70 and existing_quality < 0.70)
-        ):
+        if name and (not candidate.name or (incoming_quality >= 0.70 and existing_quality < 0.70)):
             candidate.name = name
         if email and not candidate.email:
             candidate.email = email
@@ -198,7 +199,9 @@ class JobPostingRepository:
 
     session: Session
 
-    def create(self, title: str, description: str, requirements_json: dict | None = None) -> models.JobPosting:
+    def create(
+        self, title: str, description: str, requirements_json: dict | None = None
+    ) -> models.JobPosting:
         """Creates and flushes a new persistence model row.
 
         Args:
@@ -209,7 +212,9 @@ class JobPostingRepository:
         Returns:
             models.JobPosting: Persisted ORM instance returned after flush.
         """
-        job = models.JobPosting(title=title, description=description, requirements_json=requirements_json)
+        job = models.JobPosting(
+            title=title, description=description, requirements_json=requirements_json
+        )
         self.session.add(job)
         self.session.flush()
         return job
@@ -230,7 +235,9 @@ class ResumeRepository:
         Returns:
             models.Resume | None: Persisted ORM instance returned after flush.
         """
-        return self.session.scalar(select(models.Resume).where(models.Resume.source_file == source_file))
+        return self.session.scalar(
+            select(models.Resume).where(models.Resume.source_file == source_file)
+        )
 
     def get_by_content_hash(self, content_hash: str) -> models.Resume | None:
         """Finds a resume row by content hash for idempotency checks.
@@ -241,7 +248,9 @@ class ResumeRepository:
         Returns:
             models.Resume | None: Persisted ORM instance returned after flush.
         """
-        return self.session.scalar(select(models.Resume).where(models.Resume.content_hash == content_hash))
+        return self.session.scalar(
+            select(models.Resume).where(models.Resume.content_hash == content_hash)
+        )
 
     def get_latest_resume_by_candidate_id(self, candidate_id: int) -> models.Resume | None:
         """Returns the most recent resume for a candidate.
@@ -446,3 +455,72 @@ class MatchRepository:
             .where(models.Match.job_id == job_id)
             .where(models.Match.candidate_id == candidate_id)
         )
+
+
+@dataclass
+class TaskRepository:
+    """Repository for tracking background async tasks."""
+
+    session: Session
+
+    def create_task(self, task_type: str, input_payload: dict | None = None) -> models.AsyncTask:
+        """Creates a new PENDING async task.
+
+        Args:
+            task_type (str): Type of task to run.
+            input_payload (dict | None): Input arguments for the task.
+
+        Returns:
+            models.AsyncTask: The newly created task row.
+        """
+        task = models.AsyncTask(
+            task_type=task_type,
+            status="PENDING",
+            input_payload=input_payload,
+        )
+        self.session.add(task)
+        self.session.flush()
+        return task
+
+    def get_task(self, task_id: int) -> models.AsyncTask | None:
+        """Retrieves a task by ID.
+
+        Args:
+            task_id (int): Task ID to retrieve.
+
+        Returns:
+            models.AsyncTask | None: Task if found.
+        """
+        return self.session.get(models.AsyncTask, task_id)
+
+    def update_task(
+        self,
+        task_id: int,
+        status: str | None = None,
+        output_payload: dict | None = None,
+        error_message: str | None = None,
+    ) -> models.AsyncTask | None:
+        """Updates an existing task's status and payloads.
+
+        Args:
+            task_id (int): Task to update.
+            status (str | None): New status (RUNNING, COMPLETED, FAILED).
+            output_payload (dict | None): Output payload.
+            error_message (str | None): Error string if FAILED.
+
+        Returns:
+            models.AsyncTask | None: Updated task.
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return None
+
+        if status:
+            task.status = status
+        if output_payload is not None:
+            task.output_payload = output_payload
+        if error_message is not None:
+            task.error_message = error_message
+
+        self.session.flush()
+        return task

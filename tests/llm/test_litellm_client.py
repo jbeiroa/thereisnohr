@@ -92,7 +92,9 @@ def test_generate_structured_with_meta_returns_usage(monkeypatch, tmp_path: Path
     assert meta.usage.estimated_cost_usd == pytest.approx(0.000123)
 
 
-def test_generate_structured_with_meta_handles_cost_estimation_failures(monkeypatch, tmp_path: Path) -> None:
+def test_generate_structured_with_meta_handles_cost_estimation_failures(
+    monkeypatch, tmp_path: Path
+) -> None:
     def fake_completion(self, **_kwargs):  # noqa: ANN001
         _ = self
         return {

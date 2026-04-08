@@ -32,8 +32,7 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def start(self):
-        """Runs start logic.
-        """
+        """Runs start logic."""
         settings = get_settings()
         input_dir_path = Path(self.input_dir)
         if not input_dir_path.is_absolute():
@@ -59,10 +58,11 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def discover_files(self):
-        """Discovers input files that match the configured ingestion pattern.
-        """
+        """Discovers input files that match the configured ingestion pattern."""
         service = IngestionService()
-        files = service.discover_pdf_files(Path(self.settings["input_dir"]), self.settings["pattern"])
+        files = service.discover_pdf_files(
+            Path(self.settings["input_dir"]), self.settings["pattern"]
+        )
         self.pdf_files = [str(path) for path in files]
         self.discovery_metrics = {
             "discovered_count": len(self.pdf_files),
@@ -79,8 +79,7 @@ class ResumePdfIngestionFlow(FlowSpec):
 
     @step
     def ingest_one(self):
-        """Runs ingestion logic and persists resulting ATS records.
-        """
+        """Runs ingestion logic and persists resulting ATS records."""
         file_path = Path(self.input)
         service = IngestionService()
         session = get_session()
@@ -135,8 +134,7 @@ class ResumePdfIngestionFlow(FlowSpec):
     @card(type="blank", id="run_metrics")
     @step
     def end(self):
-        """Runs end logic.
-        """
+        """Runs end logic."""
         if not hasattr(self, "results"):
             self.results = []
         if not hasattr(self, "step_events"):
@@ -160,9 +158,8 @@ class ResumePdfIngestionFlow(FlowSpec):
 
         status_counts = self.run_report.get("status_counts", {})
         ingested = status_counts.get("ingested", 0)
-        skipped = (
-            status_counts.get("skipped_existing_resume", 0)
-            + status_counts.get("skipped_existing_content", 0)
+        skipped = status_counts.get("skipped_existing_resume", 0) + status_counts.get(
+            "skipped_existing_content", 0
         )
         errors = status_counts.get("error", 0)
         print(

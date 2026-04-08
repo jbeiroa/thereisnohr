@@ -3,7 +3,17 @@
 from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, String, Text
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -95,7 +105,9 @@ class Embedding(Base):
 
     __table_args__ = (
         CheckConstraint("dimensions > 0", name="ck_embeddings_dimensions_positive"),
-        CheckConstraint("dimensions = vector_dims(vector)", name="ck_embeddings_dimensions_match_vector"),
+        CheckConstraint(
+            "dimensions = vector_dims(vector)", name="ck_embeddings_dimensions_match_vector"
+        ),
         ForeignKeyConstraint(
             ["model", "dimensions"],
             ["embedding_models.model", "embedding_models.dimensions"],
@@ -138,4 +150,28 @@ class Match(Base):
     interview_pack_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    candidate: Mapped["Candidate"] = relationship()
+
+
+class AsyncTask(Base):
+    """Data model for background task tracking."""
+
+    __tablename__ = "async_tasks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    task_type: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(64), nullable=False, default="PENDING", index=True)
+    input_payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    output_payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )

@@ -26,7 +26,9 @@ def test_registry_loads_aliases(tmp_path: Path) -> None:
 
 def test_registry_raises_for_unknown_alias(tmp_path: Path) -> None:
     config = tmp_path / "model_aliases.yaml"
-    config.write_text("embedding_default:\n  default_model: text-embedding-3-small\n", encoding="utf-8")
+    config.write_text(
+        "embedding_default:\n  default_model: text-embedding-3-small\n", encoding="utf-8"
+    )
     registry = ModelAliasRegistry(config)
 
     with pytest.raises(KeyError):

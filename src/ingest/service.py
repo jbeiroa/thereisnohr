@@ -50,8 +50,7 @@ class IngestionService:
     section_model_max_chars: int | None = None
 
     def __post_init__(self) -> None:
-        """Initializes default runtime dependencies and configuration values after dataclass construction.
-        """
+        """Initializes default runtime dependencies and configuration values after dataclass construction."""
         settings = get_settings()
         if self.parser is None:
             self.parser = PDFResumeParser()
@@ -135,7 +134,9 @@ class IngestionService:
                 section_count=0,
             )
 
-        fallback_resolver = self._build_llm_fallback_resolver() if self.enable_name_model_fallback else None
+        fallback_resolver = (
+            self._build_llm_fallback_resolver() if self.enable_name_model_fallback else None
+        )
         identity = extract_identity(
             parsed,
             model_name_resolver=ModelNameResolver(llm_resolver=fallback_resolver),
@@ -143,7 +144,9 @@ class IngestionService:
             name_fallback_trigger_threshold=float(self.name_rule_trigger_threshold or 0.60),
             name_model_accept_threshold=float(self.name_model_accept_threshold or 0.70),
         )
-        name_confidence = float((identity.signals.get("confidence_inputs") or {}).get("name_confidence", 0.0))
+        name_confidence = float(
+            (identity.signals.get("confidence_inputs") or {}).get("name_confidence", 0.0)
+        )
         candidate, _ = candidate_repo.get_or_create_by_identity_key(
             identity_key=identity.identity_key,
             name=identity.name,
@@ -154,10 +157,14 @@ class IngestionService:
         )
 
         section_payloads = self._build_section_payloads(parsed=parsed, resume_id=0)
-        effective_section_names = list(dict.fromkeys(payload["section_type"] for payload in section_payloads))
+        effective_section_names = list(
+            dict.fromkeys(payload["section_type"] for payload in section_payloads)
+        )
 
         # Extract structured candidate signals from parsed sections
-        extraction_service = ExtractionService(llm_client=self._resolve_llm_client() or build_default_llm_client())
+        extraction_service = ExtractionService(
+            llm_client=self._resolve_llm_client() or build_default_llm_client()
+        )
         sections_dict = {p["section_type"]: p["content"] for p in section_payloads}
         candidate_signals = extraction_service.extract_candidate_signals(sections_dict)
 
@@ -235,7 +242,9 @@ class IngestionService:
         Returns:
             int: The ID of the created job posting.
         """
-        extraction_service = ExtractionService(llm_client=self._resolve_llm_client() or build_default_llm_client())
+        extraction_service = ExtractionService(
+            llm_client=self._resolve_llm_client() or build_default_llm_client()
+        )
         requirements = extraction_service.extract_job_requirements(description)
 
         repo = JobPostingRepository(session)
@@ -257,7 +266,9 @@ class IngestionService:
             list[dict]: Section dictionaries consumed by ``ResumeSectionRepository``.
         """
         payloads: list[dict] = []
-        fallback_resolver = self._build_llm_fallback_resolver() if self.enable_section_model_fallback else None
+        fallback_resolver = (
+            self._build_llm_fallback_resolver() if self.enable_section_model_fallback else None
+        )
 
         for item in parsed.section_items:
             signals = item.signals or {}
@@ -267,7 +278,10 @@ class IngestionService:
             model_section_type: str | None = None
             model_section_confidence: float | None = None
             routed = False
-            if self._should_route_section(item.normalized_type, item.confidence) and fallback_resolver is not None:
+            if (
+                self._should_route_section(item.normalized_type, item.confidence)
+                and fallback_resolver is not None
+            ):
                 routed = True
                 excerpt = item.content[: int(self.section_model_max_chars or 700)]
                 try:
@@ -279,7 +293,8 @@ class IngestionService:
                     model_section_type = prediction.section_type
                     model_section_confidence = float(prediction.confidence)
                     if (
-                        model_section_confidence >= float(self.section_model_accept_threshold or 0.75)
+                        model_section_confidence
+                        >= float(self.section_model_accept_threshold or 0.75)
                         and model_section_type != base_type
                     ):
                         final_type = model_section_type
@@ -317,7 +332,9 @@ class IngestionService:
         Returns:
             bool: True when the condition is satisfied; otherwise False.
         """
-        return section_type == "general" or confidence < float(self.section_model_accept_threshold or 0.75)
+        return section_type == "general" or confidence < float(
+            self.section_model_accept_threshold or 0.75
+        )
 
     def _build_llm_fallback_resolver(self) -> LLMFallbackResolver | None:
         """Helper that handles build llm fallback resolver.

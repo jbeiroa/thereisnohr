@@ -18,8 +18,12 @@ def test_candidate_identity_reuse_across_files(db_session, tmp_path: Path) -> No
 
     parser = MappingParser(
         {
-            str(first_path): "# John Doe\njdoe@example.com\n+1 415 555 0100\n# Experience\nTaught physics",
-            str(second_path): "# John Doe\njdoe@example.com\n+1 415 555 0100\n# Skills\nPython\nSQL",
+            str(
+                first_path
+            ): "# John Doe\njdoe@example.com\n+1 415 555 0100\n# Experience\nTaught physics",
+            str(
+                second_path
+            ): "# John Doe\njdoe@example.com\n+1 415 555 0100\n# Skills\nPython\nSQL",
         }
     )
     service = IngestionService(parser=parser)
@@ -146,7 +150,9 @@ def test_non_skill_section_embeddings_persisted(db_session, tmp_path: Path) -> N
     source_path = tmp_path / "embed.pdf"
     parser = MappingParser(
         {
-            str(source_path): "# Experience\nBuilt services for backend systems.\n# Skills\nPython\nSQL",
+            str(
+                source_path
+            ): "# Experience\nBuilt services for backend systems.\n# Skills\nPython\nSQL",
         }
     )
 
@@ -180,7 +186,9 @@ def test_non_skill_section_embeddings_persisted(db_session, tmp_path: Path) -> N
 
     assert result.status == "ingested"
     sections = db_session.query(models.ResumeSection).all()
-    non_skill_ids = {row.id for row in sections if row.section_type != "skills" and row.content.strip()}
+    non_skill_ids = {
+        row.id for row in sections if row.section_type != "skills" and row.content.strip()
+    }
     skill_ids = {row.id for row in sections if row.section_type == "skills"}
 
     embeddings = db_session.query(models.Embedding).all()

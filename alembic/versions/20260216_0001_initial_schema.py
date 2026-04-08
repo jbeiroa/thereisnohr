@@ -15,8 +15,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Runs upgrade logic.
-    """
+    """Runs upgrade logic."""
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
 
     op.create_table(
@@ -60,7 +59,9 @@ def upgrade() -> None:
         sa.Column("tokens", sa.Integer(), nullable=True),
         sa.Column("metadata_json", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     )
-    op.create_index(op.f("ix_resume_sections_section_type"), "resume_sections", ["section_type"], unique=False)
+    op.create_index(
+        op.f("ix_resume_sections_section_type"), "resume_sections", ["section_type"], unique=False
+    )
 
     op.create_table(
         "embeddings",
@@ -91,8 +92,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Runs downgrade logic.
-    """
+    """Runs downgrade logic."""
     op.drop_table("matches")
     op.drop_index("ix_embeddings_owner", table_name="embeddings")
     op.drop_index(op.f("ix_embeddings_text_hash"), table_name="embeddings")

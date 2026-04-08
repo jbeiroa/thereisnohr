@@ -15,8 +15,8 @@ def test_settings_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that environment variables override default values."""
     monkeypatch.setenv("APP_NAME", "custom_ats")
     monkeypatch.setenv("ENVIRONMENT", "prod")
-    
+
     settings = Settings()
-    
+
     assert settings.app_name == "custom_ats"
     assert settings.environment == "prod"

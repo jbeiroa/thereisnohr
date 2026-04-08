@@ -29,7 +29,6 @@ SECTION_MAPPING = {
     "career objective": "summary",
     "personal statement": "summary",
     "overview": "summary",
-
     # -------------------
     # EXPERIENCE
     # -------------------
@@ -49,7 +48,6 @@ SECTION_MAPPING = {
     "experiencia": "experience",
     "experiencia profesional": "experience",
     "experiencia laboral": "experience",
-
     # -------------------
     # EDUCATION
     # -------------------
@@ -71,7 +69,6 @@ SECTION_MAPPING = {
     "educación": "education",
     "formacion": "education",
     "formación": "education",
-
     # -------------------
     # SKILLS
     # -------------------
@@ -94,7 +91,6 @@ SECTION_MAPPING = {
     "habilidades": "skills",
     "competencias": "skills",
     "aptitudes": "skills",
-
     # -------------------
     # PROJECTS
     # -------------------
@@ -107,7 +103,6 @@ SECTION_MAPPING = {
     "portfolio": "projects",
     "research projects": "projects",
     "proyectos": "projects",
-
     # -------------------
     # CERTIFICATIONS
     # -------------------
@@ -120,7 +115,6 @@ SECTION_MAPPING = {
     "accreditations": "certifications",
     "certificaciones": "certifications",
     "licencias": "certifications",
-
     # -------------------
     # CONTACT
     # -------------------
@@ -278,7 +272,9 @@ class PDFResumeParser:
         links = re.findall(r"https?://[^\s\)\]]+", text)
         return sorted(set(links))
 
-    def extract_sections(self, markdown: str, spans: list[HeadingSpan] | None = None) -> dict[str, str]:
+    def extract_sections(
+        self, markdown: str, spans: list[HeadingSpan] | None = None
+    ) -> dict[str, str]:
         """Extracts structured data from raw resume or markdown input.
 
         Args:
@@ -399,19 +395,14 @@ class PDFResumeParser:
         Returns:
             str: Normalized string result.
         """
-        return re.sub(
-            r"\*\*==>.*?<==\*\*",
-            "",
-            markdown,
-            flags=re.DOTALL
-        )
+        return re.sub(r"\*\*==>.*?<==\*\*", "", markdown, flags=re.DOTALL)
 
     def _remove_encoding_artifacts(self, markdown: str) -> str:
         """
         Removes common encoding mismatch artifacts such as
         the Unicode replacement character (�).
         """
-        return markdown.replace("\uFFFD", "")
+        return markdown.replace("\ufffd", "")
 
     def _clean_markdown_table_artifacts(self, text: str) -> str:
         """
@@ -478,11 +469,11 @@ class PDFResumeParser:
         Returns:
             str: Normalized string result.
         """
-        clean_markdown=self._remove_omitted_pictures(markdown)
-        clean_markdown=self._remove_encoding_artifacts(clean_markdown)
-        clean_markdown=self._clean_markdown_table_artifacts(clean_markdown)
-        clean_markdown=self._remove_all_bullet_chars(clean_markdown)
-        clean_markdown=self._remove_dotted_leaders(clean_markdown)
+        clean_markdown = self._remove_omitted_pictures(markdown)
+        clean_markdown = self._remove_encoding_artifacts(clean_markdown)
+        clean_markdown = self._clean_markdown_table_artifacts(clean_markdown)
+        clean_markdown = self._remove_all_bullet_chars(clean_markdown)
+        clean_markdown = self._remove_dotted_leaders(clean_markdown)
         return clean_markdown
 
     def _find_heading_spans(self, markdown: str) -> list[HeadingSpan]:
@@ -515,7 +506,7 @@ class PDFResumeParser:
                     raw_heading=title,
                     title=title,
                     start_line=i,
-                    end_line=-1     # temporary placeholder
+                    end_line=-1,  # temporary placeholder
                 )
 
         # Close last span
@@ -650,9 +641,9 @@ class PDFResumeParser:
         return None
 
     def _absorb_generals_into_single_line_sections(
-            self,
-            spans: list[HeadingSpan],
-        ) -> list[HeadingSpan]:
+        self,
+        spans: list[HeadingSpan],
+    ) -> list[HeadingSpan]:
         """
         If a non-'general' section has only one line (start_line == end_line),
         absorb consecutive following 'general' sections into it.
@@ -665,10 +656,7 @@ class PDFResumeParser:
             current = spans[i]
 
             # Only apply rule to non-general single-line sections
-            if (
-                current.title != "general"
-                and current.start_line == current.end_line
-            ):
+            if current.title != "general" and current.start_line == current.end_line:
                 j = i + 1
 
                 # Absorb consecutive general sections

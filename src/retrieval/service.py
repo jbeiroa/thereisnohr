@@ -20,7 +20,9 @@ class RetrievalService:
     llm_client: LLMClient | None = None
     registry: ModelAliasRegistry | None = None
 
-    def top_k(self, job_description: str, k: int, embedding_model_alias: str | None = None) -> list[tuple[int, float]]:
+    def top_k(
+        self, job_description: str, k: int, embedding_model_alias: str | None = None
+    ) -> list[tuple[int, float]]:
         """Runs top k logic.
 
         Args:
@@ -36,7 +38,9 @@ class RetrievalService:
 
         alias = embedding_model_alias or get_settings().embedding_model_alias
         model = self._resolve_model_for_alias(alias)
-        query_vector = self._embed_job_description(job_description=job_description, embedding_model_alias=alias)
+        query_vector = self._embed_job_description(
+            job_description=job_description, embedding_model_alias=alias
+        )
         if not query_vector:
             return []
         return self._query_top_candidates(model=model, query_vector=query_vector, k=k)
@@ -55,7 +59,9 @@ class RetrievalService:
             return self.llm_client
         return build_default_llm_client()
 
-    def _query_top_candidates(self, *, model: str, query_vector: list[float], k: int) -> list[tuple[int, float]]:
+    def _query_top_candidates(
+        self, *, model: str, query_vector: list[float], k: int
+    ) -> list[tuple[int, float]]:
         """Queries top candidate ids for one model+dimension embedding space."""
         session = self.session or get_session()
         close_session = self.session is None
@@ -88,7 +94,9 @@ class RetrievalService:
             if close_session:
                 session.close()
 
-    def _embed_job_description(self, *, job_description: str, embedding_model_alias: str) -> list[float]:
+    def _embed_job_description(
+        self, *, job_description: str, embedding_model_alias: str
+    ) -> list[float]:
         """Embeds the input job text using the configured embedding alias."""
         vectors = self._resolve_llm_client().embed(
             texts=[job_description],

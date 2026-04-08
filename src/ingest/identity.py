@@ -108,7 +108,9 @@ class RulesOnlyNameResolver:
             return None, round(best_score, 4), {"method": "rules", "candidates": reasons}
         return best_name, round(best_score, 4), {"method": "rules", "candidates": reasons}
 
-    def _score_name_line(self, line: str, line_index: int, emails: list[str]) -> tuple[float, list[str]]:
+    def _score_name_line(
+        self, line: str, line_index: int, emails: list[str]
+    ) -> tuple[float, list[str]]:
         """Helper that handles score name line.
 
         Args:
@@ -146,9 +148,7 @@ class RulesOnlyNameResolver:
             return 0.0, ["too_much_punctuation"]
 
         name_like_tokens = sum(
-            1
-            for part in parts
-            if (part[:1].isupper() and part[1:].islower()) or part.isupper()
+            1 for part in parts if (part[:1].isupper() and part[1:].islower()) or part.isupper()
         )
         if name_like_tokens < 2:
             return 0.0, ["not_enough_name_like_tokens"]
@@ -197,7 +197,9 @@ class ModelNameResolver:
             return None, 0.0, {"method": "model_llm", "enabled": False}
 
         lines = [line.strip() for line in text.splitlines() if line.strip()]
-        candidate_lines = [_normalize_candidate_name_line(_strip_line_prefix(line)) for line in lines[:10]]
+        candidate_lines = [
+            _normalize_candidate_name_line(_strip_line_prefix(line)) for line in lines[:10]
+        ]
         candidate_lines = [line for line in candidate_lines if line]
 
         try:
@@ -212,18 +214,26 @@ class ModelNameResolver:
 
         candidate = _normalize_name(result.name)
         if not _is_valid_person_name(candidate):
-            return None, 0.0, {
+            return (
+                None,
+                0.0,
+                {
+                    "method": "model_llm",
+                    "enabled": True,
+                    "rejected_reason": "invalid_name_shape",
+                    "reason": result.reason,
+                },
+            )
+
+        return (
+            candidate,
+            float(result.confidence),
+            {
                 "method": "model_llm",
                 "enabled": True,
-                "rejected_reason": "invalid_name_shape",
                 "reason": result.reason,
-            }
-
-        return candidate, float(result.confidence), {
-            "method": "model_llm",
-            "enabled": True,
-            "reason": result.reason,
-        }
+            },
+        )
 
 
 def extract_identity(
@@ -265,7 +275,11 @@ def extract_identity(
     model_used = False
     model_signals: dict | None = None
     fallback_reason = "not_attempted"
-    if allow_model_fallback and name_confidence < name_fallback_trigger_threshold and (emails or phones):
+    if (
+        allow_model_fallback
+        and name_confidence < name_fallback_trigger_threshold
+        and (emails or phones)
+    ):
         fallback_reason = "attempted"
         model_resolver = model_name_resolver or ModelNameResolver()
         model_name, model_confidence, model_signals = model_resolver.resolve_name(
@@ -276,7 +290,11 @@ def extract_identity(
                 "language": parsed.language,
             },
         )
-        if model_name and model_confidence >= name_model_accept_threshold and model_confidence > name_confidence:
+        if (
+            model_name
+            and model_confidence >= name_model_accept_threshold
+            and model_confidence > name_confidence
+        ):
             name = model_name
             name_confidence = model_confidence
             name_signals = {
@@ -291,7 +309,9 @@ def extract_identity(
     email = emails[0] if emails else None
     phone = phones[0] if phones else None
 
-    identity_key, identity_key_reason = compute_identity_key(name=name, email=email, phone=phone, clean_text=parsed.clean_text)
+    identity_key, identity_key_reason = compute_identity_key(
+        name=name, email=email, phone=phone, clean_text=parsed.clean_text
+    )
 
     confidence, confidence_inputs = score_identity_confidence(
         name=name,
@@ -631,8 +651,6 @@ def _is_valid_person_name(name: str | None) -> bool:
     if any(char.isdigit() for char in cleaned):
         return False
     name_like = sum(
-        1
-        for part in parts
-        if (part[:1].isupper() and part[1:].islower()) or part.isupper()
+        1 for part in parts if (part[:1].isupper() and part[1:].islower()) or part.isupper()
     )
     return name_like >= 2

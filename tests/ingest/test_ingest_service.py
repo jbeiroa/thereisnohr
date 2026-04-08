@@ -97,7 +97,17 @@ def test_ingest_links_multiple_resumes_to_same_candidate(monkeypatch) -> None:
                     return type("Resume", (), resume)
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
+        def create(
+            self,
+            candidate_id,
+            source_file,
+            content_hash,
+            raw_text,
+            *,
+            parsed_json=None,
+            signals_json=None,
+            language=None,
+        ):
             resume = {
                 "id": len(_Store.resumes) + 1,
                 "candidate_id": candidate_id,
@@ -133,7 +143,10 @@ def test_ingest_links_multiple_resumes_to_same_candidate(monkeypatch) -> None:
     class FakeLLM:
         def generate_structured_with_meta(self, prompt, schema, model_alias, **kwargs):
             result = CandidateSignals(skills=["Python"])
-            meta = LLMCallMetadata(model_alias=model_alias, usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+            meta = LLMCallMetadata(
+                model_alias=model_alias,
+                usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
             return result, meta
 
     parsed_iter = iter([parsed_one, parsed_two])
@@ -169,7 +182,16 @@ def test_ingest_merges_candidate_links(monkeypatch) -> None:
         def __init__(self, session):
             self.session = session
 
-        def get_or_create_by_identity_key(self, *, identity_key, name=None, email=None, phone=None, links=None, name_confidence=None):
+        def get_or_create_by_identity_key(
+            self,
+            *,
+            identity_key,
+            name=None,
+            email=None,
+            phone=None,
+            links=None,
+            name_confidence=None,
+        ):
             existing = _Store.candidates.get(identity_key)
             if existing:
                 existing["links"] = sorted(set((existing.get("links") or []) + list(links or [])))
@@ -195,8 +217,22 @@ def test_ingest_merges_candidate_links(monkeypatch) -> None:
         def get_by_content_hash(self, content_hash):
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
-            resume = {"id": len(_Store.resumes) + 1, "candidate_id": candidate_id, "signals_json": signals_json}
+        def create(
+            self,
+            candidate_id,
+            source_file,
+            content_hash,
+            raw_text,
+            *,
+            parsed_json=None,
+            signals_json=None,
+            language=None,
+        ):
+            resume = {
+                "id": len(_Store.resumes) + 1,
+                "candidate_id": candidate_id,
+                "signals_json": signals_json,
+            }
             _Store.resumes.append(resume)
             return type("Resume", (), resume)
 
@@ -214,11 +250,16 @@ def test_ingest_merges_candidate_links(monkeypatch) -> None:
     class FakeLLM:
         def generate_structured_with_meta(self, prompt, schema, model_alias, **kwargs):
             result = CandidateSignals(skills=["Python"])
-            meta = LLMCallMetadata(model_alias=model_alias, usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
+            meta = LLMCallMetadata(
+                model_alias=model_alias,
+                usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
             return result, meta
 
     parsed_iter = iter([parsed_one, parsed_two])
-    service = IngestionService(llm_client=FakeLLM(), enable_name_model_fallback=False, enable_section_model_fallback=False)
+    service = IngestionService(
+        llm_client=FakeLLM(), enable_name_model_fallback=False, enable_section_model_fallback=False
+    )
     monkeypatch.setattr(service, "parse_pdf", lambda path: next(parsed_iter))
 
     service.ingest_pdf(Path("/tmp/resume_one.pdf"), session=object())
@@ -236,14 +277,20 @@ def test_section_model_promotion_applies_threshold(monkeypatch) -> None:
     )
 
     class FakeLLM:
-        def generate_structured(self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs):
+        def generate_structured(
+            self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs
+        ):
             if "Classify resume section" in prompt:
                 return schema.model_validate(
                     {"section_type": "skills", "confidence": 0.93, "reason": "contains skill terms"}
                 )
-            return schema.model_validate({"name": "John Doe", "confidence": 0.95, "reason": "header"})
+            return schema.model_validate(
+                {"name": "John Doe", "confidence": 0.95, "reason": "header"}
+            )
 
-        def generate_structured_with_meta(self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs):
+        def generate_structured_with_meta(
+            self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs
+        ):
             if schema == CandidateSignals:
                 result = CandidateSignals(skills=["Python"])
                 meta = LLMCallMetadata(
@@ -251,7 +298,9 @@ def test_section_model_promotion_applies_threshold(monkeypatch) -> None:
                     usage=LLMUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
                 )
                 return result, meta
-            return self.generate_structured(prompt, schema, model_alias, **kwargs), LLMCallMetadata(model_alias=model_alias)
+            return self.generate_structured(prompt, schema, model_alias, **kwargs), LLMCallMetadata(
+                model_alias=model_alias
+            )
 
         def embed(self, texts, embedding_model_alias):
             return []
@@ -266,7 +315,11 @@ def test_section_model_promotion_applies_threshold(monkeypatch) -> None:
             self.session = session
 
         def get_or_create_by_identity_key(self, **kwargs):
-            candidate = {"id": 1, "external_id": kwargs["identity_key"], "links": kwargs.get("links")}
+            candidate = {
+                "id": 1,
+                "external_id": kwargs["identity_key"],
+                "links": kwargs.get("links"),
+            }
             _Store.candidates[kwargs["identity_key"]] = candidate
             return type("Candidate", (), candidate), True
 
@@ -280,8 +333,23 @@ def test_section_model_promotion_applies_threshold(monkeypatch) -> None:
         def get_by_content_hash(self, content_hash):
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
-            resume = {"id": 1, "candidate_id": candidate_id, "parsed_json": parsed_json, "signals_json": signals_json}
+        def create(
+            self,
+            candidate_id,
+            source_file,
+            content_hash,
+            raw_text,
+            *,
+            parsed_json=None,
+            signals_json=None,
+            language=None,
+        ):
+            resume = {
+                "id": 1,
+                "candidate_id": candidate_id,
+                "parsed_json": parsed_json,
+                "signals_json": signals_json,
+            }
             _Store.resumes.append(resume)
             return type("Resume", (), resume)
 
@@ -290,7 +358,11 @@ def test_section_model_promotion_applies_threshold(monkeypatch) -> None:
             self.session = session
 
         def create(self, *, resume_id, section_type, content, metadata_json=None, tokens=None):
-            row = {"resume_id": resume_id, "section_type": section_type, "metadata_json": metadata_json}
+            row = {
+                "resume_id": resume_id,
+                "section_type": section_type,
+                "metadata_json": metadata_json,
+            }
             _Store.sections.append(row)
             return type("Section", (), row)
 
@@ -330,7 +402,9 @@ def test_ingest_persists_non_skill_section_embeddings(monkeypatch) -> None:
             )
             return [[0.1, 0.2]], meta
 
-        def generate_structured_with_meta(self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs):
+        def generate_structured_with_meta(
+            self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs
+        ):
             result = CandidateSignals(skills=["Python"])
             meta = LLMCallMetadata(
                 model_alias=model_alias,
@@ -348,7 +422,11 @@ def test_ingest_persists_non_skill_section_embeddings(monkeypatch) -> None:
             self.session = session
 
         def get_or_create_by_identity_key(self, **kwargs):
-            candidate = {"id": 1, "external_id": kwargs["identity_key"], "links": kwargs.get("links")}
+            candidate = {
+                "id": 1,
+                "external_id": kwargs["identity_key"],
+                "links": kwargs.get("links"),
+            }
             return type("Candidate", (), candidate), True
 
     class FakeResumeRepository:
@@ -361,8 +439,20 @@ def test_ingest_persists_non_skill_section_embeddings(monkeypatch) -> None:
         def get_by_content_hash(self, content_hash):
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
-            resume = SimpleNamespace(id=1, candidate_id=candidate_id, parsed_json=parsed_json, signals_json=signals_json)
+        def create(
+            self,
+            candidate_id,
+            source_file,
+            content_hash,
+            raw_text,
+            *,
+            parsed_json=None,
+            signals_json=None,
+            language=None,
+        ):
+            resume = SimpleNamespace(
+                id=1, candidate_id=candidate_id, parsed_json=parsed_json, signals_json=signals_json
+            )
             _Store.resumes.append(resume)
             return resume
 
@@ -371,7 +461,12 @@ def test_ingest_persists_non_skill_section_embeddings(monkeypatch) -> None:
             self.session = session
 
         def create(self, *, resume_id, section_type, content, metadata_json=None, tokens=None):
-            row = {"id": len(_Store.sections) + 1, "resume_id": resume_id, "section_type": section_type, "content": content}
+            row = {
+                "id": len(_Store.sections) + 1,
+                "resume_id": resume_id,
+                "section_type": section_type,
+                "content": content,
+            }
             _Store.sections.append(row)
             return type("Section", (), row)
 
@@ -423,7 +518,9 @@ def test_ingest_soft_fails_when_embedding_call_errors(monkeypatch) -> None:
         def embed_with_meta(self, texts, embedding_model_alias):
             raise RuntimeError("embedding provider unavailable")
 
-        def generate_structured_with_meta(self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs):
+        def generate_structured_with_meta(
+            self, prompt: str, schema: type[BaseModel], model_alias: str, **kwargs
+        ):
             result = CandidateSignals(skills=["Python"])
             meta = LLMCallMetadata(
                 model_alias=model_alias,
@@ -441,7 +538,11 @@ def test_ingest_soft_fails_when_embedding_call_errors(monkeypatch) -> None:
             self.session = session
 
         def get_or_create_by_identity_key(self, **kwargs):
-            candidate = {"id": 1, "external_id": kwargs["identity_key"], "links": kwargs.get("links")}
+            candidate = {
+                "id": 1,
+                "external_id": kwargs["identity_key"],
+                "links": kwargs.get("links"),
+            }
             return type("Candidate", (), candidate), True
 
     class FakeResumeRepository:
@@ -454,8 +555,20 @@ def test_ingest_soft_fails_when_embedding_call_errors(monkeypatch) -> None:
         def get_by_content_hash(self, content_hash):
             return None
 
-        def create(self, candidate_id, source_file, content_hash, raw_text, *, parsed_json=None, signals_json=None, language=None):
-            resume = SimpleNamespace(id=1, candidate_id=candidate_id, parsed_json=parsed_json, signals_json=signals_json)
+        def create(
+            self,
+            candidate_id,
+            source_file,
+            content_hash,
+            raw_text,
+            *,
+            parsed_json=None,
+            signals_json=None,
+            language=None,
+        ):
+            resume = SimpleNamespace(
+                id=1, candidate_id=candidate_id, parsed_json=parsed_json, signals_json=signals_json
+            )
             _Store.resumes.append(resume)
             return resume
 
@@ -464,7 +577,12 @@ def test_ingest_soft_fails_when_embedding_call_errors(monkeypatch) -> None:
             self.session = session
 
         def create(self, *, resume_id, section_type, content, metadata_json=None, tokens=None):
-            row = {"id": len(_Store.sections) + 1, "resume_id": resume_id, "section_type": section_type, "content": content}
+            row = {
+                "id": len(_Store.sections) + 1,
+                "resume_id": resume_id,
+                "section_type": section_type,
+                "content": content,
+            }
             _Store.sections.append(row)
             return type("Section", (), row)
 

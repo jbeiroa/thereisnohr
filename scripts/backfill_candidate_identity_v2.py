@@ -82,7 +82,7 @@ def run_backfill(*, apply: bool) -> int:
     try:
         candidates = session.query(Candidate).all()
         resume_counts: dict[int, int] = defaultdict(int)
-        for candidate_id, in session.query(Resume.candidate_id).all():
+        for (candidate_id,) in session.query(Resume.candidate_id).all():
             resume_counts[int(candidate_id)] += 1
         grouped: dict[str, list[Candidate]] = defaultdict(list)
         for candidate in candidates:
@@ -96,7 +96,9 @@ def run_backfill(*, apply: bool) -> int:
         moved_matches = 0
 
         for key, rows in sorted(merge_groups.items()):
-            canonical = sorted(rows, key=lambda row: _candidate_rank(row, resume_counts), reverse=True)[0]
+            canonical = sorted(
+                rows, key=lambda row: _candidate_rank(row, resume_counts), reverse=True
+            )[0]
             duplicates = [row for row in rows if row.id != canonical.id]
             all_links = set(_link_list(canonical.links))
 
@@ -155,7 +157,9 @@ def main() -> int:
     Returns:
         int: Exit/status code for the operation.
     """
-    parser = argparse.ArgumentParser(description="Merge duplicate candidates using email/phone primary identity keys.")
+    parser = argparse.ArgumentParser(
+        description="Merge duplicate candidates using email/phone primary identity keys."
+    )
     parser.add_argument("--apply", action="store_true", help="Persist changes. Default is dry-run.")
     args = parser.parse_args()
     return run_backfill(apply=args.apply)

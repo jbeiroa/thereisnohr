@@ -29,8 +29,7 @@ def ingest(path: Path) -> None:
 
 @app.command()
 def index() -> None:
-    """Runs index logic.
-    """
+    """Runs index logic."""
     settings = get_settings()
     configure_logging(settings.log_level)
     log = get_run_logger(__name__)
@@ -74,16 +73,21 @@ def rank(job_id: int, top_k: int = 5) -> None:
     configure_logging(settings.log_level)
     log = get_run_logger(__name__)
     log.info("rank command received", extra={"job_id": job_id, "top_k": top_k})
-    
+
     with get_session() as session:
         workflow = RankingWorkflow(session)
         ranked = workflow.run(job_id=job_id, top_k=top_k)
         session.commit()
-        
-    typer.secho(f"\nTop {len(ranked[:top_k])} Candidates for Job {job_id}:", fg=typer.colors.CYAN, bold=True)
+
+    typer.secho(
+        f"\nTop {len(ranked[:top_k])} Candidates for Job {job_id}:", fg=typer.colors.CYAN, bold=True
+    )
     for r in ranked[:top_k]:
         color = typer.colors.GREEN if r.rank == 1 else typer.colors.WHITE
-        typer.secho(f"{r.rank}. Candidate ID: {r.candidate_id} | Score: {r.scores.final_score:.2f}", fg=color)
+        typer.secho(
+            f"{r.rank}. Candidate ID: {r.candidate_id} | Score: {r.scores.final_score:.2f}",
+            fg=color,
+        )
         if r.explanation:
             typer.echo(f"   Summary: {r.explanation.evidence_based_summary}")
             if r.explanation.gaps_and_risks:
@@ -109,7 +113,10 @@ def prep(job_id: int, candidate_id: int) -> None:
         match_repo = MatchRepository(session)
         match = match_repo.get_by_job_and_candidate(job_id, candidate_id)
         if not match:
-            typer.secho(f"No match found for Job {job_id} and Candidate {candidate_id}.", fg=typer.colors.RED)
+            typer.secho(
+                f"No match found for Job {job_id} and Candidate {candidate_id}.",
+                fg=typer.colors.RED,
+            )
             raise typer.Exit(1)
 
         if match.interview_pack_json:
@@ -134,11 +141,17 @@ def prep(job_id: int, candidate_id: int) -> None:
             )
 
             explanation = None
-            if match.reasons_json and "explanation" in match.reasons_json and match.reasons_json["explanation"]:
+            if (
+                match.reasons_json
+                and "explanation" in match.reasons_json
+                and match.reasons_json["explanation"]
+            ):
                 explanation = RankExplanation.model_validate(match.reasons_json["explanation"])
 
             if not explanation:
-                typer.secho("No ranking explanation found to base the prep pack on.", fg=typer.colors.RED)
+                typer.secho(
+                    "No ranking explanation found to base the prep pack on.", fg=typer.colors.RED
+                )
                 raise typer.Exit(1)
 
             ranking_service = RankingService()
@@ -151,16 +164,20 @@ def prep(job_id: int, candidate_id: int) -> None:
                 typer.secho("Failed to generate interview pack.", fg=typer.colors.RED)
                 raise typer.Exit(1)
 
-    typer.secho(f"\nInterview Preparation Pack (Job {job_id}, Candidate {candidate_id})", fg=typer.colors.CYAN, bold=True)
-    
+    typer.secho(
+        f"\nInterview Preparation Pack (Job {job_id}, Candidate {candidate_id})",
+        fg=typer.colors.CYAN,
+        bold=True,
+    )
+
     typer.secho("\nTechnical Questions:", fg=typer.colors.YELLOW, bold=True)
     for q in pack.technical_questions:
         typer.echo(f" - {q}")
-        
+
     typer.secho("\nBehavioral Questions:", fg=typer.colors.YELLOW, bold=True)
     for q in pack.behavioral_questions:
         typer.echo(f" - {q}")
-        
+
     typer.secho("\nClarification Questions (Gaps/Risks):", fg=typer.colors.YELLOW, bold=True)
     for q in pack.clarification_questions:
         typer.echo(f" - {q}")

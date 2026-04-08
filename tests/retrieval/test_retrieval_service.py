@@ -7,8 +7,7 @@ from src.llm.registry import ModelAliasRegistry
 def _make_registry(tmp_path: Path) -> ModelAliasRegistry:
     config = tmp_path / "model_aliases.yaml"
     config.write_text(
-        "embedding_default:\n"
-        "  default_model: openai/text-embedding-3-small\n",
+        "embedding_default:\n  default_model: openai/text-embedding-3-small\n",
         encoding="utf-8",
     )
     return ModelAliasRegistry(config)

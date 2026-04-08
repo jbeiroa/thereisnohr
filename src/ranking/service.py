@@ -4,7 +4,13 @@ from dataclasses import dataclass
 
 from src.llm.client import LLMClient
 from src.llm.factory import build_default_llm_client
-from src.ranking.types import InterviewPrepPack, RankedCandidate, RankExplanation, RankInput, ScoreBreakdown
+from src.ranking.types import (
+    InterviewPrepPack,
+    RankedCandidate,
+    RankExplanation,
+    RankInput,
+    ScoreBreakdown,
+)
 
 
 @dataclass
@@ -56,7 +62,7 @@ class RankingService:
 
     def _deterministic_score(self, rank_input: RankInput) -> ScoreBreakdown:
         """Compute deterministic score components for one rank input.
-        
+
         Logic:
         - Base score is retrieval_score (normalized to 0-1 range).
         - Skill overlap: +0.1 per matched hard skill, up to 0.5.
@@ -64,18 +70,18 @@ class RankingService:
         """
         req_skills = {s.lower() for s in rank_input.requirements.hard_skills}
         cand_skills = {s.lower() for s in rank_input.signals.skills}
-        
+
         matched = list(req_skills & cand_skills)
         missing = list(req_skills - cand_skills)
-        
+
         # Heuristic: 50% vector retrieval, 50% skill overlap
         retrieval_weight = 0.5
         skill_weight = 0.5
-        
+
         skill_score = len(matched) / len(req_skills) if req_skills else 1.0
-        
+
         final_score = (rank_input.retrieval_score * retrieval_weight) + (skill_score * skill_weight)
-        
+
         return ScoreBreakdown(
             deterministic_score=final_score,
             final_score=final_score,
@@ -92,11 +98,12 @@ class RankingService:
         results: list[tuple[float, RankExplanation | None]] = []
         client = self._resolve_llm_client()
         from src.core.logging import get_run_logger
+
         log = get_run_logger(__name__)
-        
+
         # Map inputs for easy lookup
         input_map = {inp.candidate_id: inp for inp in all_inputs}
-        
+
         for cand in top_candidates:
             inp = input_map[cand.candidate_id]
             prompt = (
@@ -107,7 +114,7 @@ class RankingService:
                 f"Candidate Signals:\n{inp.signals.model_dump_json(indent=2)}\n\n"
                 "Return valid JSON matching the requested schema."
             )
-            
+
             try:
                 explanation = client.generate_structured(
                     prompt=prompt,
@@ -120,13 +127,16 @@ class RankingService:
             except Exception as e:
                 log.error(f"Failed reranking for candidate {cand.candidate_id}: {e}")
                 results.append((0.0, None))
-                
+
         return results
 
-    def generate_interview_pack(self, rank_input: RankInput, explanation: RankExplanation) -> InterviewPrepPack | None:
+    def generate_interview_pack(
+        self, rank_input: RankInput, explanation: RankExplanation
+    ) -> InterviewPrepPack | None:
         """Generate tailored interview preparation questions for a candidate."""
         client = self._resolve_llm_client()
         from src.core.logging import get_run_logger
+
         log = get_run_logger(__name__)
 
         prompt = (
@@ -149,5 +159,7 @@ class RankingService:
                 model_alias="explainer_default",
             )
         except Exception as e:
-            log.error(f"Failed to generate interview pack for candidate {rank_input.candidate_id}: {e}")
+            log.error(
+                f"Failed to generate interview pack for candidate {rank_input.candidate_id}: {e}"
+            )
             return None

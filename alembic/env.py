@@ -17,8 +17,7 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """Runs run migrations offline logic.
-    """
+    """Runs run migrations offline logic."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -32,8 +31,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Runs run migrations online logic.
-    """
+    """Runs run migrations online logic."""
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

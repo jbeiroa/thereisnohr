@@ -24,12 +24,12 @@ def test_extract_job_requirements(extraction_service, mock_llm_client):
         soft_skills=[],
         years_experience_min=3,
         education_requirements=["BS in Computer Science"],
-        certifications=[]
+        certifications=[],
     )
     mock_llm_client.generate_structured.return_value = expected_result
 
     result = extraction_service.extract_job_requirements(job_description)
-    
+
     assert result == expected_result
     mock_llm_client.generate_structured.assert_called_once()
     kwargs = mock_llm_client.generate_structured.call_args.kwargs
@@ -48,18 +48,20 @@ def test_extract_candidate_signals(extraction_service, mock_llm_client):
         experience_highlights=["Software Engineer at Google - Developed Python APIs"],
         education=[],
         certifications=[],
-        summary=None
+        summary=None,
     )
     meta = LLMCallMetadata(
         model_alias="extractor_default",
         attempts=[LLMAttempt(attempt_index=1, model="test-model", succeeded=True)],
-        usage=LLMUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150, estimated_cost_usd=0.001)
+        usage=LLMUsage(
+            prompt_tokens=100, completion_tokens=50, total_tokens=150, estimated_cost_usd=0.001
+        ),
     )
-    
+
     mock_llm_client.generate_structured_with_meta.return_value = (expected_result, meta)
 
     result = extraction_service.extract_candidate_signals(sections)
-    
+
     assert result == expected_result
     mock_llm_client.generate_structured_with_meta.assert_called_once()
 
@@ -73,7 +75,7 @@ def test_extract_with_diagnostics(extraction_service, mock_llm_client):
         experience_highlights=["Backend Dev"],
         education=[],
         certifications=[],
-        summary=None
+        summary=None,
     )
     meta = LLMCallMetadata(
         model_alias="extractor_default",
@@ -81,13 +83,15 @@ def test_extract_with_diagnostics(extraction_service, mock_llm_client):
         attempts=[LLMAttempt(attempt_index=1, model="test-model", succeeded=True)],
         fallback_used=False,
         latency_ms=150.0,
-        usage=LLMUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150, estimated_cost_usd=0.001)
+        usage=LLMUsage(
+            prompt_tokens=100, completion_tokens=50, total_tokens=150, estimated_cost_usd=0.001
+        ),
     )
-    
+
     mock_llm_client.generate_structured_with_meta.return_value = (expected_result, meta)
 
     result, diagnostics = extraction_service.extract_with_diagnostics(sections)
-    
+
     assert result == expected_result
     assert isinstance(diagnostics, ExtractionDiagnostics)
     assert diagnostics.model_alias == "extractor_default"
@@ -102,6 +106,6 @@ def test_extract_with_diagnostics(extraction_service, mock_llm_client):
 
 def test_extract_job_requirements_raises_error(extraction_service, mock_llm_client):
     mock_llm_client.generate_structured.side_effect = Exception("Provider failed")
-    
+
     with pytest.raises(Exception):
         extraction_service.extract_job_requirements("Test")

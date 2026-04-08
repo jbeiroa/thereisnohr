@@ -57,7 +57,7 @@ def mock_default_llm_client() -> Generator[None, None, None]:
         # Also patch where it might have been imported already
         if hasattr(ingest_service, "build_default_llm_client"):
             mp.setattr(ingest_service, "build_default_llm_client", lambda: fake_client)
-        
+
         yield
 
 

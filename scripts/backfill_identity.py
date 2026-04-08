@@ -26,7 +26,9 @@ def run_backfill(*, apply: bool) -> int:
         for resume in resumes:
             if resume.content_hash:
                 continue
-            clean_text = (resume.parsed_json or {}).get("clean_text") if resume.parsed_json else None
+            clean_text = (
+                (resume.parsed_json or {}).get("clean_text") if resume.parsed_json else None
+            )
             source = clean_text or resume.raw_text
             resume.content_hash = compute_content_hash(source)
             updated += 1
@@ -58,7 +60,9 @@ def main() -> int:
     Returns:
         int: Exit/status code for the operation.
     """
-    parser = argparse.ArgumentParser(description="Backfill resume content hashes and report duplicate identity keys.")
+    parser = argparse.ArgumentParser(
+        description="Backfill resume content hashes and report duplicate identity keys."
+    )
     parser.add_argument("--apply", action="store_true", help="Persist changes. Default is dry-run.")
     args = parser.parse_args()
     return run_backfill(apply=args.apply)

@@ -103,7 +103,9 @@ class LiteLLMClient(LLMClient):
     normalization.
     """
 
-    def __init__(self, registry: ModelAliasRegistry, *, timeout_seconds: float, max_retries: int) -> None:
+    def __init__(
+        self, registry: ModelAliasRegistry, *, timeout_seconds: float, max_retries: int
+    ) -> None:
         """Initializes the client with alias registry and runtime defaults.
 
         Args:
@@ -169,7 +171,9 @@ class LiteLLMClient(LLMClient):
         embedding_model_alias: str,
     ) -> list[list[float]]:
         """Asynchronously generates embeddings without metadata wrapper."""
-        vectors, _ = await self.aembed_with_meta(texts=texts, embedding_model_alias=embedding_model_alias)
+        vectors, _ = await self.aembed_with_meta(
+            texts=texts, embedding_model_alias=embedding_model_alias
+        )
         return vectors
 
     def generate_structured_with_meta(

@@ -45,8 +45,7 @@ def upgrade() -> None:
     if mixed_rows:
         models = ", ".join(str(row[0]) for row in mixed_rows)
         raise RuntimeError(
-            "Cannot migrate embeddings: mixed dimensions found for model(s): "
-            f"{models}"
+            f"Cannot migrate embeddings: mixed dimensions found for model(s): {models}"
         )
 
     conn.execute(
@@ -103,7 +102,9 @@ def downgrade() -> None:
     op.drop_constraint("fk_embeddings_model_dimensions", "embeddings", type_="foreignkey")
     op.drop_constraint("ck_embeddings_dimensions_match_vector", "embeddings", type_="check")
     op.drop_constraint("ck_embeddings_dimensions_positive", "embeddings", type_="check")
-    op.execute("ALTER TABLE embeddings ALTER COLUMN vector TYPE vector(1536) USING vector::vector(1536)")
+    op.execute(
+        "ALTER TABLE embeddings ALTER COLUMN vector TYPE vector(1536) USING vector::vector(1536)"
+    )
     op.drop_column("embeddings", "dimensions")
 
     op.drop_index("ux_embedding_models_model_dimensions", table_name="embedding_models")
