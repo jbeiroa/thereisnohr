@@ -59,13 +59,19 @@ class RankingWorkflow:
         for r in ranked:
             prep_pack_json = None
             if r.rank <= generate_prep_packs and r.explanation:
-                pack = ranking_service.generate_interview_pack(input_map[r.candidate_id], r.explanation)
+                pack = ranking_service.generate_interview_pack(
+                    input_map[r.candidate_id], r.explanation
+                )
                 if pack:
                     prep_pack_json = pack.model_dump()
 
-            existing = match_repo.get_by_job_and_candidate(job_id=job_id, candidate_id=r.candidate_id)
+            existing = match_repo.get_by_job_and_candidate(
+                job_id=job_id, candidate_id=r.candidate_id
+            )
             if existing:
-                existing.retrieval_score = next(s for cid, s in top_candidates if cid == r.candidate_id)
+                existing.retrieval_score = next(
+                    s for cid, s in top_candidates if cid == r.candidate_id
+                )
                 existing.rerank_score = r.scores.llm_adjustment
                 existing.final_score = r.scores.final_score
                 existing.reasons_json = {

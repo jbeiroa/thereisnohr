@@ -38,6 +38,9 @@ dependencies = [
   "pymupdf-layout>=1.27.1",
   "ipython>=9.10.0",
   "dotenv>=0.9.9",
+  "streamlit>=1.42.0",
+  "requests>=2.32.3",
+  "python-multipart>=0.0.20",
 ]
 
 [project.optional-dependencies]

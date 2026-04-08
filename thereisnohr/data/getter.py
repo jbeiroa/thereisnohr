@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 import pymupdf4llm
 
+
 @dataclass
 class Getter:
     """
@@ -27,14 +28,14 @@ class Getter:
     -------
     __post_init__():
         Initializes the list of PDF files in the directory. Raises FileNotFoundError if no PDF files are found.
-    
+
     get_cv(path: str) -> str:
         Converts a PDF file at the specified path to markdown format.
-    
+
     get_next() -> Optional[str]:
         Processes the next PDF file in the directory and converts it to markdown format.
         If `save_to_file` is True, saves the markdown to a file. Returns the markdown or None if no files remain.
-    
+
     reset():
         Resets the processing index to the beginning and clears the last processed markdown.
     """
@@ -55,7 +56,7 @@ class Getter:
         FileNotFoundError
             If no PDF files are found in the specified directory.
         """
-        self.files = [file for file in os.listdir(self.directory) if file.endswith('.pdf')]
+        self.files = [file for file in os.listdir(self.directory) if file.endswith(".pdf")]
         if not self.files:
             raise FileNotFoundError("No PDF files found in the specified directory.")
 
@@ -75,7 +76,7 @@ class Getter:
         """
         self.markdown = pymupdf4llm.to_markdown(path, show_progress=False)
         return self.markdown
-    
+
     def get_next(self) -> Optional[str]:
         """
         Processes the next PDF file in the directory and converts it to markdown format.
@@ -88,17 +89,17 @@ class Getter:
         """
         if self.current_index >= len(self.files):
             return None
-        
+
         current_file_path = os.path.join(self.directory, self.files[self.current_index])
         self.current_index += 1
-        
+
         self.markdown = self.get_cv(current_file_path)
-        
+
         if self.save_to_file:
             md_file_path = os.path.splitext(current_file_path)[0] + ".md"
-            with open(md_file_path, 'w', encoding='utf-8') as md_file:
+            with open(md_file_path, "w", encoding="utf-8") as md_file:
                 md_file.write(self.markdown)
-        
+
         return self.markdown
 
     def reset(self):

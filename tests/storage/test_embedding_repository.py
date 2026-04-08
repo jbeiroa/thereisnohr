@@ -42,7 +42,9 @@ def test_embedding_repository_registers_model_dimensions_on_first_write() -> Non
 
 def test_embedding_repository_rejects_dimension_mismatch_for_existing_model() -> None:
     session = _FakeSession()
-    session.registered_model = models.EmbeddingModel(model="openai/text-embedding-3-small", dimensions=1536)
+    session.registered_model = models.EmbeddingModel(
+        model="openai/text-embedding-3-small", dimensions=1536
+    )
     repo = EmbeddingRepository(session=session)  # type: ignore[arg-type]
 
     with pytest.raises(ValueError, match="expects 1536 dimensions"):

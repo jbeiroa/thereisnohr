@@ -35,9 +35,13 @@ class ExtractionService:
         signals, _ = self.extract_with_diagnostics(sections)
         return signals
 
-    def extract_with_diagnostics(self, sections: dict[str, str]) -> tuple[CandidateSignals, ExtractionDiagnostics]:
+    def extract_with_diagnostics(
+        self, sections: dict[str, str]
+    ) -> tuple[CandidateSignals, ExtractionDiagnostics]:
         """Extract candidate signals and return diagnostics metadata."""
-        sections_text = "\n\n".join(f"--- {k.upper()} ---\n{v}" for k, v in sections.items() if v.strip())
+        sections_text = "\n\n".join(
+            f"--- {k.upper()} ---\n{v}" for k, v in sections.items() if v.strip()
+        )
         prompt = (
             "Extract structured candidate signals from the following parsed resume sections.\n"
             "Return JSON matching the schema.\n\n"
@@ -49,7 +53,7 @@ class ExtractionService:
                 schema=CandidateSignals,
                 model_alias=self.extractor_model_alias,
             )
-            
+
             diagnostics = ExtractionDiagnostics(
                 model_alias=meta.model_alias,
                 attempts=len(meta.attempts),

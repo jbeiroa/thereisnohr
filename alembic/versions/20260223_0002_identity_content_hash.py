@@ -51,8 +51,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Runs downgrade logic.
-    """
+    """Runs downgrade logic."""
     op.drop_index("ux_candidates_external_id_not_null", table_name="candidates")
     op.drop_index(op.f("ix_resumes_content_hash"), table_name="resumes")
     op.drop_column("resumes", "content_hash")

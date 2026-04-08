@@ -390,7 +390,11 @@ def _kpi_markup(report: dict) -> str:
     tiles = [
         tile("Files", total, "#1f2937"),
         tile("Ingested", status.get("ingested", 0), "#0f766e"),
-        tile("Skipped", status.get("skipped_existing_resume", 0) + status.get("skipped_existing_content", 0), "#a16207"),
+        tile(
+            "Skipped",
+            status.get("skipped_existing_resume", 0) + status.get("skipped_existing_content", 0),
+            "#a16207",
+        ),
         tile("Errors", status.get("error", 0), "#b91c1c"),
         tile("Success %", f"{success}%", "#1d4ed8"),
     ]
@@ -521,7 +525,9 @@ def render_run_report_card(report: dict) -> list[Any]:
             f"**Pattern:** `{run_meta.get('pattern')}`"
         ),
         Markdown(_kpi_markup(report)),
-        ValueBox(title="Metrics Version", value=report.get("metrics_version", "unknown"), theme="light"),
+        ValueBox(
+            title="Metrics Version", value=report.get("metrics_version", "unknown"), theme="light"
+        ),
         Markdown("## Status Breakdown"),
         _build_status_table(report),
         Markdown("## Confidence Summary"),

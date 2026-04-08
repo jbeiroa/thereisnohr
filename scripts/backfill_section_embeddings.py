@@ -52,11 +52,7 @@ def run(
                 )
             session.flush()
 
-        existing = set(
-            session.execute(
-                select(Embedding.owner_id, Embedding.model)
-            ).all()
-        )
+        existing = set(session.execute(select(Embedding.owner_id, Embedding.model)).all())
 
         stmt = select(ResumeSection).where(ResumeSection.section_type != "skills")
         if resume_id is not None:
@@ -89,7 +85,9 @@ def run(
                 existing.add((section.id, model))
             except Exception as exc:
                 failed += 1
-                print(f"section_id={section.id} status=error error_type={type(exc).__name__} error={exc}")
+                print(
+                    f"section_id={section.id} status=error error_type={type(exc).__name__} error={exc}"
+                )
 
         if dry_run:
             session.rollback()
@@ -111,8 +109,12 @@ def main() -> int:
     """Parses CLI arguments and runs the backfill command."""
     parser = argparse.ArgumentParser(description="Backfill non-skill resume section embeddings.")
     parser.add_argument("--embedding-alias", default=None, help="Embedding alias override.")
-    parser.add_argument("--limit", type=int, default=None, help="Maximum number of sections to process.")
-    parser.add_argument("--resume-id", type=int, default=None, help="Restrict processing to one resume.")
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Maximum number of sections to process."
+    )
+    parser.add_argument(
+        "--resume-id", type=int, default=None, help="Restrict processing to one resume."
+    )
     parser.add_argument(
         "--replace-existing",
         action="store_true",

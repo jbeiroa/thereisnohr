@@ -6,12 +6,12 @@ from typing import List
 
 
 @dataclass
-class Candidate_Selector():
+class Candidate_Selector:
     """Represents Candidate Selector."""
 
     candidates: List[str] = field(default=None)
     job_description: str = field(default=None)
-    model: str = 'paraphrase-multilingual-MiniLM-L12-v2'
+    model: str = "paraphrase-multilingual-MiniLM-L12-v2"
 
     def make_model(self):
         """Run make model.
@@ -21,7 +21,7 @@ class Candidate_Selector():
 
         """
         return SentenceTransformer(self.model)
-    
+
     def embed(self, data):
         """Run embed.
 
@@ -34,7 +34,7 @@ class Candidate_Selector():
         """
         embedding = self.make_model().encode(data)
         return embedding
-    
+
     def calculate_similarities(self):
         """Run calculate similarities.
 
@@ -47,9 +47,8 @@ class Candidate_Selector():
         hits = util.semantic_search(job, candidates)
 
         return hits
-    
-    
-    def select_top_candidates(self, k = 1):
+
+    def select_top_candidates(self, k=1):
         """Run select top candidates.
 
         Args:
@@ -61,13 +60,13 @@ class Candidate_Selector():
         """
         hits = self.calculate_similarities()
         if k == 1:
-            return hits[0][:k]['corpus_id']
+            return hits[0][:k]["corpus_id"]
         top_k = []
         for i in range(k):
-            top_k.append(hits[0][i]['corpus_id'])
+            top_k.append(hits[0][i]["corpus_id"])
         return top_k
 
-    def print_top_candidates(self, k = 1):
+    def print_top_candidates(self, k=1):
         """Run print top candidates.
 
         Args:
@@ -79,6 +78,6 @@ class Candidate_Selector():
 
         Top {k} candidate summaries:
 
-        {'\n\n------\n\n'.join([self.candidates[k] for k in top_k])}
+        {"\n\n------\n\n".join([self.candidates[k] for k in top_k])}
         """
         print(result)

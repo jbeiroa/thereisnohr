@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import List
 import ollama
 
+
 @dataclass
 class Profiler:
     """
@@ -26,9 +27,11 @@ class Profiler:
 
     resume: str
     save_to_file: bool = False
-    model: str = 'llama3.2:1b'
-    categories: List[str] = field(default_factory=lambda: ['contact', 'education', 'experience', 'skills'])
-        
+    model: str = "llama3.2:1b"
+    categories: List[str] = field(
+        default_factory=lambda: ["contact", "education", "experience", "skills"]
+    )
+
     def summarize(self) -> str:
         """
         Summarizes the résumé into a structured format based on predefined categories.
@@ -57,8 +60,5 @@ class Profiler:
         
         Provide the structured summary based on the given résumé. Do not output any explanatory text.
         """
-        response = ollama.generate(
-            model=self.model,
-            prompt=prompt
-        )
-        return response['response']
+        response = ollama.generate(model=self.model, prompt=prompt)
+        return response["response"]
