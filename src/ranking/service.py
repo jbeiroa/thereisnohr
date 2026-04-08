@@ -26,7 +26,7 @@ class RankingService:
             return self.llm_client
         return build_default_llm_client()
 
-    def rank_candidates(self, inputs: list[RankInput]) -> list[RankedCandidate]:
+    def rank_candidates(self, inputs: list[RankInput], top_k: int = 5) -> list[RankedCandidate]:
         """Rank structured candidate inputs and return ranked candidate outputs."""
         scored: list[RankedCandidate] = []
         for inp in inputs:
@@ -43,7 +43,7 @@ class RankingService:
         scored.sort(key=lambda x: x.scores.final_score, reverse=True)
 
         # Rerank top-N with LLM
-        top_n = scored[:5]
+        top_n = scored[:top_k]
         if top_n:
             reranked_results = self._rerank_with_llm(top_n, inputs)
             for candidate, (adjustment, explanation) in zip(top_n, reranked_results):
