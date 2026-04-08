@@ -1,151 +1,70 @@
-# Architecture (Stage 0-4 implemented)
+# Architecture
 
-This document explains what was introduced in the reengineering baseline and why.
+This document explains the system design and architectural tradeoffs of `thereisnohr`.
 
-## 1) Architectural goals for early stages
+## 1) Architectural Goals
 
-Stage 0 through Stage 4 optimize for:
+The system is designed for:
+- **Clear module boundaries**: Each functional area (ingest, extract, retrieval, ranking) is isolated behind a service contract.
+- **Durable schema**: PostgreSQL + `pgvector` acts as the single source of truth for both structured metadata and semantic embeddings.
+- **Provider Agnosticism**: The LLM layer is abstracted via `LLMClient` and LiteLLM, allowing models to be swapped via configuration.
+- **Asynchronous Execution**: Long-running tasks (parsing, LLM calls) are processed in the background to maintain a responsive UI.
+- **Low-friction local development**: Uses `uv` for dependency management and Streamlit for a simple, effective frontend.
 
-- clear module boundaries,
-- deterministic environment setup,
-- durable schema + migration discipline,
-- multi-stage candidate matching intelligence,
-- low-friction local development.
-
-The implementation has matured from structural foundations to a functional ATS core.
-
-## 2) High-level component view
+## 2) High-Level Component View
 
 Functional flow:
+1. **Ingest**: PDF resumes are received via the API (upload) or local folder discovery.
+2. **Process (Async)**: Background tasks handle markdown extraction, identity resolution, and structured signal extraction.
+3. **Persist**: All artifacts, including parsed sections and extracted skills, are stored in PostgreSQL.
+4. **Retrieve**: When a job is ranked, `pgvector` performs a semantic search against the database.
+5. **Rank**: A hybrid algorithm combines vector scores with deterministic skill overlap and LLM-based qualitative reranking.
+6. **Interface**: Users interact with the system through a multi-page Streamlit UI connected to a FastAPI backend.
 
-1. **Ingest:** PDF resume artifacts (Metaflow).
-2. **Extract:** Candidate signals and job requirements (LLM).
-3. **Persist:** Structured data, signals, and embeddings (Postgres + pgvector).
-4. **Retrieve:** Vector search for semantic candidates.
-5. **Rank:** Hybrid scoring (Deterministic + LLM Reranking).
-6. **Explain:** AI-generated reasoning for match scores grounded in evidence.
-7. **Prepare:** Tailored interview question packs.
+## 3) Module breakdown
 
-What exists now:
+### `src/api/`
+- **FastAPI Core**: Defines the REST API surface.
+- **Async Task Runner**: Implements a zero-dependency task queue using `BackgroundTasks` and database state tracking (`AsyncTask` model).
+- **Routers**: Modular endpoints for Jobs, Candidates, Matches, and Ingestion.
 
-- complete implementation for steps 1-7,
-- durable DB schema for storage and matching history (including `interview_pack_json`),
-- operational primitives (config/logging/CLI/API/tests).
-- production-grade reranking using `gpt-4o-mini` by default.
-- ranking idempotency via match upserts.
+### `ui/`
+- **Streamlit App**: A multi-page frontend providing an intuitive dashboard for recruiters.
+- **API Client**: Encapsulates all backend communication and task polling logic.
 
-## 3) Module-by-module breakdown
+### `src/ingest/`
+- **Parser**: Hardened PDF-to-markdown engine using `pymupdf4llm` with custom cleaning rules.
+- **Identity Resolution**: Multi-stage resolution (deterministic rules -> LLM fallback) to uniquely identify candidates.
+- **Metaflow**: Orchestrates batch ingestion pipelines for high-throughput processing.
 
-## `src/core/`
+### `src/extract/`
+- **Signal Extraction**: Turns messy resume and job description text into structured JSON schemas (skills, experience, etc.) using LLMs.
 
-- `config.py`: central typed settings via `pydantic-settings`.
-- `logging.py`: structured logging helper + generated `run_id` to correlate events.
+### `src/retrieval/`
+- **Semantic Search**: Uses cosine similarity via `pgvector` to find candidates based on the semantic context of their resumes.
 
-## `src/cli.py`
+### `src/ranking/`
+- **Hybrid Scoring**: Weights vector retrieval against hard-skill overlap.
+- **LLM Reranker**: Provides the "final mile" of intelligence, offering qualitative fits and risk analysis.
 
-CLI commands:
+### `src/storage/`
+- **Durable Models**: SQLAlchemy 2.0 models for all ATS entities.
+- **Repository Pattern**: Centralizes database access logic to ensure consistency and testability.
 
-- `ingest-job`: Ingest and extract requirements from a JD.
-- `rank`: Retrieve and rank candidates for a job.
-- `ingest-flow-help`: Helper for batch resume ingestion.
+### `src/llm/`
+- **Abstraction Layer**: `LLMClient` provides a unified interface for structured generation and embeddings.
+- **Alias Registry**: Maps logical task names (e.g., `ranker_default`) to specific model/provider configurations.
 
-## `src/api/app.py`
+## 4) Data Model Highlights
 
-- FastAPI app with `/health` endpoint.
+- **`candidates`**: Global person-level identity.
+- **`resumes`**: Multiple versions of resumes linked to one candidate, storing raw text and extracted `signals_json`.
+- **`matches`**: Historical records of ranking events, including AI-generated `reasons_json` and `interview_pack_json`.
+- **`async_tasks`**: Real-time status and result tracking for background operations.
 
-## `src/ingest/`
+## 5) Design Decisions
 
-Substantive ingestion behavior:
-
-- PDF markdown extraction (`pymupdf4llm`),
-- heading span detection and canonical mapping,
-- deterministic identity resolution (Rules + LLM Fallback),
-- Metaflow flow for batch orchestration.
-
-## `src/extract/`
-
-Structured signal extraction:
-
-- `CandidateSignals`: Skills, experience, education extraction from resumes.
-- `JobRequirements`: Hard/soft skills, years of experience, and education extraction from JDs.
-
-Reasoning:
-- uses LLM structured generation to turn messy text into searchable, scorable schema.
-
-## `src/retrieval/`
-
-Semantic retrieval layer:
-
-- `RetrievalService`: Performs vector search against `resume_sections` using `pgvector`.
-- Returns a "wide net" of candidates with semantic similarity scores.
-
-## `src/ranking/`
-
-Hybrid ranking and refinement:
-
-- `Deterministic Scoring`: 50/50 weighted average of vector similarity and hard-skill overlap.
-- `LLM Reranking`: Uses a ranker model to provide qualitative assessments and explanations for top candidates.
-
-Reasoning:
-- balances the "intuition" of embeddings with the "precision" of keyword/signal matching.
-
-## `src/storage/`
-
-- `db.py`: SQLAlchemy base, engine/session creation.
-- `models.py`: ATS entities and relationships (including `signals_json` and `matches`).
-- `repositories.py`: repository layer for transactional access.
-
-## `alembic/`
-
-- migration runtime and schema revisions (Initial -> Identity -> Embeddings -> Ranking).
-
-## 4) Data model introduced in Stage 1-4
-
-Tables:
-
-- `candidates`: person-level identity/contact metadata.
-- `resumes`: raw source text, parsed structure, and **`signals_json`**.
-- `resume_sections`: normalized sections (experience, skills, education, etc.).
-- `job_postings`: job definitions and **`requirements_json`**.
-- `embeddings`: vectors tied to resume sections.
-- **`matches`**: score records linking job and candidate plus **`reasons_json`**.
-
-## 5) Why Postgres + pgvector
-
-Chosen to balance flexibility and operational simplicity.
-
-Benefits:
-
-- one durable datastore for transactional + vector workloads,
-- native filtering and joins for hybrid scoring,
-- good migration story with Alembic.
-
-## 6) Why flat `src/` layout
-
-Current code is at `src/<module>` rather than `src/<package>/<module>`.
-
-Benefits:
-- simpler import graph, faster refactoring, and reduced indirection.
-
-## 7) Why uv
-
-`uv` replaced Poetry for faster lock/sync operations and modern dependency management.
-
-## 8) Extensibility path toward Stage 5+
-
-The current structure supports:
-
-- **Stage 5**: Richer explanations and interview prep generation.
-- **Stage 6**: Production API expansion and web-based recruiter dashboard.
-- **Continuous Improvement**: Tuning ranking heuristics and model prompts.
-
-## 9) Notebook-driven experimentation
-
-The repository includes a notebook suite to validate components:
-
-- `notebooks/parsers_testing.ipynb`: parser QA.
-- `notebooks/extraction_service_testing.ipynb`: LLM signal extraction QA.
-- `notebooks/ingestion_service_testing.ipynb`: service helper checks.
-- `notebooks/repositories_smoke_testing.ipynb`: repository contract smoke checks.
-- `notebooks/llm_registry_testing.ipynb`: alias registry checks.
-
+- **Postgres + pgvector**: Chosen to keep infrastructure simple. One database handles relational data, JSON metadata, and vector embeddings.
+- **Flat `src/` Layout**: Keeps imports direct and reduces cognitive overhead during development.
+- **Alembic**: Mandatory migration discipline ensures the schema remains stable and reproducible.
+- **Background Tasks**: Essential for LLM workflows where latency can be high (10s-60s).
