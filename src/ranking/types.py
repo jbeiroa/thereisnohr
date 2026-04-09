@@ -45,15 +45,10 @@ class RankExplanation(BaseModel):
     evidence_based_summary: str
     strengths_with_evidence: list[StrengthWithEvidence] = Field(default_factory=list)
     gaps_and_risks: list[GapOrRisk] = Field(default_factory=list)
-
-
-class RankedCandidate(BaseModel):
-    """Ranked output record for one candidate."""
-
-    candidate_id: int
-    rank: int
-    scores: ScoreBreakdown
-    explanation: RankExplanation | None = None
+    llm_adjustment_score: float = Field(
+        default=0.0,
+        description="A score adjustment between -0.2 (poor qualitative fit) and +0.2 (excellent qualitative fit) based on qualitative assessment.",
+    )
 
 
 class InterviewPrepPack(BaseModel):
@@ -71,3 +66,13 @@ class InterviewPrepPack(BaseModel):
         default_factory=list,
         description="Specific questions to clarify the gaps or risks identified in the ranking explanation.",
     )
+
+
+class RankedCandidate(BaseModel):
+    """Ranked output record for one candidate."""
+
+    candidate_id: int
+    rank: int
+    scores: ScoreBreakdown
+    explanation: RankExplanation | None = None
+    interview_pack: InterviewPrepPack | None = None

@@ -50,6 +50,9 @@ class RankingService:
                 candidate.scores.llm_adjustment = adjustment
                 candidate.scores.final_score += adjustment
                 candidate.explanation = explanation
+                if explanation:
+                    inp = next(x for x in inputs if x.candidate_id == candidate.candidate_id)
+                    candidate.interview_pack = self.generate_interview_pack(inp, explanation)
 
         # Re-sort after adjustment
         scored.sort(key=lambda x: x.scores.final_score, reverse=True)
@@ -109,7 +112,9 @@ class RankingService:
             prompt = (
                 "Evaluate the fit of this candidate for the job based on the extracted requirements and candidate signals.\n"
                 "Provide a human-readable, evidence-based summary. For each strength, cite a short quote from the candidate signals. "
-                "For gaps and risks, identify missing requirements, assess the impact, and provide a hint for how to clarify this uncertainty in an interview.\n\n"
+                "For gaps and risks, identify missing requirements, assess the impact, and provide a hint for how to clarify this uncertainty in an interview.\n"
+                "Finally, provide an `llm_adjustment_score` between -0.2 (poor qualitative fit) and +0.2 (excellent qualitative fit) "
+                "to adjust the initial deterministic match score based on your holistic assessment.\n\n"
                 f"Job Requirements:\n{inp.requirements.model_dump_json(indent=2)}\n\n"
                 f"Candidate Signals:\n{inp.signals.model_dump_json(indent=2)}\n\n"
                 "Return valid JSON matching the requested schema."
@@ -121,9 +126,9 @@ class RankingService:
                     schema=RankExplanation,
                     model_alias=self.ranker_model_alias,
                 )
-                # For now, we stub the adjustment as 0.0 unless we want to extend RankExplanation to include a score.
-                # Let's assume the LLM just provides the qualitative explanation for now.
-                results.append((0.0, explanation))
+                # Use the adjustment score from the LLM
+                adjustment = explanation.llm_adjustment_score if explanation else 0.0
+                results.append((adjustment, explanation))
             except Exception as e:
                 log.error(f"Failed reranking for candidate {cand.candidate_id}: {e}")
                 results.append((0.0, None))
