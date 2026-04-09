@@ -1,3 +1,12 @@
+---
+title: thereisnohr
+emoji: 🤖
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 # thereisnohr
 
 `thereisnohr` is a small, flexible, provider-agnostic Applicant Tracking System (ATS).
