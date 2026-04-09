@@ -152,13 +152,8 @@ def start_ingest_task(api, task, label):
     except Exception as e:
         st.sidebar.error(f"Error starting process: {e}")
 
-def main():
-    api = APIClient()
-
-    # --- SIDEBAR: Ingestion Panel ---
-    st.sidebar.title("Ingestion Panel")
-    st.sidebar.markdown("Add resumes to the database.")
-
+@st.fragment
+def ingestion_panel(api):
     # Check active ingest task
     active_ingest_id = st.session_state.get("active_ingest_task")
     active_ingest_lbl = st.session_state.get("active_ingest_label", "Ingesting Resumes")
@@ -166,7 +161,7 @@ def main():
         check_ingest_task(api, active_ingest_id, active_ingest_lbl)
 
     default_data_path = (Path.cwd() / "data").resolve()
-    tab1, tab2 = st.sidebar.tabs(["📂 Local Folder", "📤 Upload Files"])
+    tab1, tab2 = st.tabs(["📂 Local Folder", "📤 Upload Files"])
 
     with tab1:
         with st.form("ingest_folder_form"):
@@ -191,185 +186,194 @@ def main():
                 else:
                     st.sidebar.warning("An ingestion task is already running.")
 
-    # --- MAIN AREA ---
-    # Fetch data once per rerun
-    try:
-        jobs = api.list_jobs()
-    except Exception as e:
-        st.error(f"Could not connect to API: {e}")
-        return
+@st.fragment
+def job_panel(api, jobs):
+    st.header("Job Panel")
+    
+    active_job_id = st.session_state.get("active_job_task")
+    active_job_lbl = st.session_state.get("active_job_title", "New Job")
+    if active_job_id:
+        check_job_task(api, active_job_id, active_job_lbl)
 
-    col_job, col_rank = st.columns([1, 1], gap="large")
-
-    # --- MIDDLE PANEL: Job Management ---
-    with col_job:
-        st.header("Job Panel")
+    if jobs:
+        st.subheader("Selected Job")
+        job_options = {f"{j['title']} (ID: {j['id']})": j for j in jobs}
         
-        active_job_id = st.session_state.get("active_job_task")
-        active_job_lbl = st.session_state.get("active_job_title", "New Job")
-        if active_job_id:
-            check_job_task(api, active_job_id, active_job_lbl)
+        # Selectbox to pick a job
+        selected_label = st.selectbox(
+            "Select a Job Posting", 
+            options=list(job_options.keys()),
+            key="job_selector_widget"
+        )
+        selected_job = job_options[selected_label]
+        
+        # If selection changed, update session state and trigger rerun for ranking panel
+        if st.session_state.get("selected_job_id") != selected_job['id']:
+            st.session_state["selected_job_id"] = selected_job['id']
+            st.session_state["selected_job_title"] = selected_job['title']
+            st.rerun()
+        
+        with st.container(border=True):
+            st.markdown(f"### {selected_job['title']}")
+            st.write(f"**ID:** {selected_job['id']}")
+            if selected_job.get('requirements_json'):
+                reqs = selected_job['requirements_json']
+                st.write("**Requirements:**")
+                st.write(f"- Role: {reqs.get('role', 'N/A')}")
+                st.write(f"- Seniority: {reqs.get('seniority_level', 'N/A')}")
+                st.write(f"- Hard Skills: {', '.join(reqs.get('hard_skills', []))}")
+                st.write(f"- Soft Skills: {', '.join(reqs.get('soft_skills', []))}")
+            with st.expander("Show Full Description"):
+                st.text(selected_job.get('description', 'No description available.'))
+    else:
+        st.info("No jobs found. Add a new job below.")
 
-        selected_job_id = None
-        selected_job_title = None
+    st.divider()
 
-        if jobs:
-            st.subheader("Selected Job")
-            job_options = {f"{j['title']} (ID: {j['id']})": j for j in jobs}
-            
-            # Selectbox to pick a job
-            selected_label = st.selectbox("Select a Job Posting", options=list(job_options.keys()))
-            selected_job = job_options[selected_label]
-            selected_job_id = selected_job['id']
-            selected_job_title = selected_job['title']
-            
-            with st.container(border=True):
-                st.markdown(f"### {selected_job['title']}")
-                st.write(f"**ID:** {selected_job['id']}")
-                if selected_job.get('requirements_json'):
-                    reqs = selected_job['requirements_json']
-                    st.write("**Requirements:**")
-                    st.write(f"- Role: {reqs.get('role', 'N/A')}")
-                    st.write(f"- Seniority: {reqs.get('seniority_level', 'N/A')}")
-                    st.write(f"- Hard Skills: {', '.join(reqs.get('hard_skills', []))}")
-                    st.write(f"- Soft Skills: {', '.join(reqs.get('soft_skills', []))}")
-                with st.expander("Show Full Description"):
-                    st.text(selected_job.get('description', 'No description available.'))
-        else:
-            st.info("No jobs found. Add a new job below.")
+    with st.expander("➕ Add New Job"):
+        new_job_title = st.text_input("Job Title", placeholder="Senior Python Engineer")
+        t1, t2 = st.tabs(["Paste Text", "Upload File"])
+        
+        job_desc_text = ""
+        with t1:
+            paste_text = st.text_area("Job Description", placeholder="Paste the full job description here...", height=200)
+            if paste_text:
+                job_desc_text = paste_text
+        with t2:
+            uploaded_file = st.file_uploader("Upload Text or Markdown file", type=["txt", "md"])
+            if uploaded_file:
+                job_desc_text = uploaded_file.read().decode("utf-8")
+                st.info(f"Loaded {len(job_desc_text)} characters.")
 
-        st.divider()
+        if st.button("Create Job Posting"):
+            if not new_job_title or not job_desc_text:
+                st.warning("Please provide both a job title and description.")
+            elif not active_job_id:
+                try:
+                    task = api.create_job(new_job_title, job_desc_text)
+                    st.session_state["active_job_task"] = task["id"]
+                    st.session_state["active_job_title"] = new_job_title
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error creating job: {e}")
+            else:
+                st.warning("A job creation task is already running.")
+                
+    if jobs:
+        st.subheader("Job List")
+        st.dataframe(jobs, use_container_width=True)
 
-        with st.expander("➕ Add New Job"):
-            new_job_title = st.text_input("Job Title", placeholder="Senior Python Engineer")
-            t1, t2 = st.tabs(["Paste Text", "Upload File"])
-            
-            job_desc_text = ""
-            with t1:
-                paste_text = st.text_area("Job Description", placeholder="Paste the full job description here...", height=200)
-                if paste_text:
-                    job_desc_text = paste_text
-            with t2:
-                uploaded_file = st.file_uploader("Upload Text or Markdown file", type=["txt", "md"])
-                if uploaded_file:
-                    job_desc_text = uploaded_file.read().decode("utf-8")
-                    st.info(f"Loaded {len(job_desc_text)} characters.")
+@st.fragment
+def ranking_panel(api):
+    st.header("Ranking Panel")
+    
+    selected_job_id = st.session_state.get("selected_job_id")
+    selected_job_title = st.session_state.get("selected_job_title")
 
-            if st.button("Create Job Posting"):
-                if not new_job_title or not job_desc_text:
-                    st.warning("Please provide both a job title and description.")
-                elif not active_job_id:
+    active_ranking_id = st.session_state.get("active_ranking_task")
+    active_ranking_lbl = st.session_state.get("active_ranking_job", "Unknown Job")
+    if active_ranking_id:
+        check_ranking_task(api, active_ranking_id, active_ranking_lbl)
+
+    if not selected_job_id:
+        st.info("Select or create a job in the Job Panel to rank candidates.")
+    else:
+        with st.container(border=True):
+            top_k = st.slider("Number of Candidates to Rank", min_value=1, max_value=20, value=5)
+            if st.button(f"Rank for {selected_job_title}"):
+                if not active_ranking_id:
                     try:
-                        task = api.create_job(new_job_title, job_desc_text)
-                        st.session_state["active_job_task"] = task["id"]
-                        st.session_state["active_job_title"] = new_job_title
+                        task = api.rank_job(selected_job_id, top_k)
+                        st.session_state["active_ranking_task"] = task["id"]
+                        st.session_state["active_ranking_job"] = selected_job_title
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Error creating job: {e}")
+                        st.error(f"Error starting ranking: {e}")
                 else:
-                    st.warning("A job creation task is already running.")
+                    st.warning("A ranking task is already active.")
                     
-        if jobs:
-            st.subheader("Job List")
-            st.dataframe(jobs, use_container_width=True)
-
-    # --- RIGHT PANEL: Ranking ---
-    with col_rank:
-        st.header("Ranking Panel")
+        st.divider()
         
-        active_ranking_id = st.session_state.get("active_ranking_task")
-        active_ranking_lbl = st.session_state.get("active_ranking_job", "Unknown Job")
-        if active_ranking_id:
-            check_ranking_task(api, active_ranking_id, active_ranking_lbl)
-
-        if not selected_job_id:
-            st.info("Select or create a job in the Job Panel to rank candidates.")
+        matches = api.list_matches(job_id=selected_job_id, limit=20) # Fetch up to 20
+        if not matches:
+            st.info("No matches found for this job yet. Run the ranking process above.")
         else:
-            with st.container(border=True):
-                top_k = st.slider("Number of Candidates to Rank", min_value=1, max_value=20, value=5)
-                if st.button(f"Rank for {selected_job_title}"):
-                    if not active_ranking_id:
-                        try:
-                            task = api.rank_job(selected_job_id, top_k)
-                            st.session_state["active_ranking_task"] = task["id"]
-                            st.session_state["active_ranking_job"] = selected_job_title
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Error starting ranking: {e}")
-                    else:
-                        st.warning("A ranking task is already active.")
-                        
-            st.divider()
-            
-            matches = api.list_matches(job_id=selected_job_id, limit=top_k)
-            if not matches:
-                st.info("No matches found for this job yet. Run the ranking process above.")
-            else:
-                if len(matches) < top_k:
-                    st.caption(f"Note: Only {len(matches)} distinct candidate(s) are available in the database for this job.")
-                
-                # Export buttons
-                c1, c2 = st.columns(2)
-                report_text = f"Ranking Report: {selected_job_title}\n" + "="*40 + "\n"
-                for i, m in enumerate(matches):
-                    c = m.get('candidate') or {}
-                    name = c.get('name') or f"ID: {c.get('id')}"
-                    reasons = m.get('reasons_json') or {}
-                    explanation = reasons.get('explanation') or {}
-                    report_text += f"{i+1}. {name} | Score: {m['final_score']:.2f}\n"
-                    report_text += f"   Summary: {explanation.get('evidence_based_summary', 'N/A')}\n\n"
-                c1.download_button("Export (TXT)", data=report_text, file_name=f"ranking_{selected_job_id}.txt")
-                
-                pdf_bytes = generate_pdf_report(matches, selected_job_title)
-                c2.download_button("Export (PDF)", data=pdf_bytes, file_name=f"ranking_{selected_job_id}.pdf", mime="application/pdf")
+            # Respect Top K Slider for display
+            display_count = min(top_k, len(matches))
+            display_matches = matches[:display_count]
 
-                # Display Results in a Grid-like layout
-                st.subheader("Top Candidates")
-                for i, match in enumerate(matches):
-                    candidate = match.get("candidate") or {}
-                    name = candidate.get("name") or f"ID: {candidate.get('id')}"
-                    score = match.get("final_score", 0.0)
+            if len(matches) < top_k:
+                st.caption(f"Note: Only {len(matches)} distinct candidate(s) are available in the database for this job.")
+            
+            # Export buttons
+            c1, c2 = st.columns(2)
+            report_text = f"Ranking Report: {selected_job_title}\n" + "="*40 + "\n"
+            for i, m in enumerate(display_matches):
+                c = m.get('candidate') or {}
+                name = c.get('name') or f"ID: {c.get('id')}"
+                reasons = m.get('reasons_json') or {}
+                explanation = reasons.get('explanation') or {}
+                report_text += f"{i+1}. {name} | Score: {m['final_score']:.2f}\n"
+                report_text += f"   Summary: {explanation.get('evidence_based_summary', 'N/A')}\n\n"
+            c1.download_button("Export (TXT)", data=report_text, file_name=f"ranking_{selected_job_id}.txt")
+            
+            pdf_bytes = generate_pdf_report(display_matches, selected_job_title)
+            c2.download_button("Export (PDF)", data=pdf_bytes, file_name=f"ranking_{selected_job_id}.pdf", mime="application/pdf")
+
+            # Display Results
+            st.subheader(f"Top {display_count} Candidates")
+            for i, match in enumerate(display_matches):
+                candidate = match.get("candidate") or {}
+                name = candidate.get("name") or f"ID: {candidate.get('id')}"
+                score = match.get("final_score", 0.0)
+                
+                with st.expander(f"#{i+1}: {name} (Score: {score:.2f})", expanded=(i==0)):
+                    reasons = match.get("reasons_json") or {}
+                    explanation = reasons.get("explanation") or {}
                     
-                    with st.expander(f"#{i+1}: {name} (Score: {score:.2f})", expanded=(i==0)):
-                        reasons = match.get("reasons_json") or {}
-                        explanation = reasons.get("explanation") or {}
+                    if explanation:
+                        # Qualitative Evaluation Column
+                        st.markdown("### 📝 Qualitative Evaluation")
+                        st.write(explanation.get('evidence_based_summary', 'No summary provided.'))
                         
-                        if explanation:
-                            # 2-column layout matching the sketch grid concept
-                            r_col1, r_col2 = st.columns([1, 1])
-                            with r_col1:
-                                st.markdown("##### Candidate Summary")
-                                st.write(explanation.get('evidence_based_summary', 'No summary provided.'))
-                            with r_col2:
-                                st.markdown("##### Reasons")
-                                
-                                strengths = explanation.get("strengths_with_evidence") or []
-                                if strengths:
-                                    st.markdown("**Strengths:**")
-                                    for s in strengths:
-                                        st.write(f"- {s.get('skill_or_trait')}")
-                                
-                                gaps = explanation.get("gaps_and_risks") or []
-                                if gaps:
-                                    st.markdown("**Gaps & Risks:**")
-                                    for gap in gaps:
-                                        st.write(f"- {gap.get('missing_requirement')}")
-                                        
-                        st.divider()
+                        col_eval1, col_eval2 = st.columns([1, 1])
+                        with col_eval1:
+                            st.markdown("**Strengths:**")
+                            strengths = explanation.get("strengths_with_evidence") or []
+                            if strengths:
+                                for s in strengths:
+                                    st.markdown(f"- **{s.get('skill_or_trait')}**: *\"{s.get('resume_evidence_quote', '')}\"*")
+                            else:
+                                st.write("None identified.")
+                        
+                        with col_eval2:
+                            st.markdown("**Gaps & Risks:**")
+                            gaps = explanation.get("gaps_and_risks") or []
+                            if gaps:
+                                for gap in gaps:
+                                    st.markdown(f"- **{gap.get('missing_requirement')}**: {gap.get('impact', '')} *(Hint: {gap.get('uncertainty_hint', '')})*")
+                            else:
+                                st.write("No major gaps identified.")
+
+                        # Interview Pack Section
                         interview_pack = match.get("interview_pack_json")
                         if interview_pack:
-                            if st.checkbox("Show Prep Pack", key=f"show_prep_{match['id']}"):
-                                st.markdown("##### Interview Prep Pack")
-                                tq = interview_pack.get("technical_questions", [])
-                                if tq:
-                                    st.write("**Technical:**")
-                                    for q in tq: 
-                                        st.write(f"- {q}")
-                                bq = interview_pack.get("behavioral_questions", [])
-                                if bq:
-                                    st.write("**Behavioral:**")
-                                    for q in bq: 
-                                        st.write(f"- {q}")
+                            st.divider()
+                            st.markdown("### 🎤 Interview Prep Pack")
+                            
+                            ip_col1, ip_col2, ip_col3 = st.columns(3)
+                            with ip_col1:
+                                st.markdown("**Technical**")
+                                for q in interview_pack.get("technical_questions", []):
+                                    st.write(f"- {q}")
+                            with ip_col2:
+                                st.markdown("**Behavioral**")
+                                for q in interview_pack.get("behavioral_questions", []):
+                                    st.write(f"- {q}")
+                            with ip_col3:
+                                st.markdown("**Clarification**")
+                                for q in interview_pack.get("clarification_questions", []):
+                                    st.write(f"- {q}")
                         else:
                             if st.button("Generate Prep Pack", key=f"gen_prep_{match['id']}"):
                                 try:
@@ -386,6 +390,47 @@ def main():
                                         st.rerun()
                                 except Exception as e:
                                     st.error(f"Error: {e}")
+                    else:
+                        st.info("No LLM reranking available for this candidate. Run the ranking process again to generate a qualitative evaluation.")
+                    
+                    # Show score breakdown clearly
+                    st.divider()
+                    st.markdown("**Score Breakdown:**")
+                    st_col1, st_col2, st_col3 = st.columns(3)
+                    
+                    breakdown = reasons.get("breakdown") or {}
+                    det_score = breakdown.get("deterministic_score", score)
+                    llm_adj = breakdown.get("llm_adjustment", 0.0)
+                    
+                    st_col1.metric("Deterministic Score", f"{det_score:.2f}")
+                    st_col2.metric("LLM Adjustment", f"{llm_adj:+.2f}" if explanation else "N/A")
+                    st_col3.metric("Final Score", f"{score:.2f}")
+
+def main():
+    api = APIClient()
+
+    # --- SIDEBAR: Ingestion Panel ---
+    with st.sidebar:
+        st.title("Ingestion Panel")
+        st.markdown("Add resumes to the database.")
+        ingestion_panel(api)
+
+    # --- MAIN AREA ---
+    try:
+        jobs = api.list_jobs()
+    except Exception as e:
+        st.error(f"Could not connect to API: {e}")
+        return
+
+    col_job, col_rank = st.columns([1, 1], gap="large")
+
+    # --- MIDDLE PANEL: Job Management ---
+    with col_job:
+        job_panel(api, jobs)
+
+    # --- RIGHT PANEL: Ranking ---
+    with col_rank:
+        ranking_panel(api)
 
 if __name__ == "__main__":
     main()

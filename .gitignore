@@ -52,6 +52,15 @@ fused_model/
 **/huggingface/
 **/transformers_cache/
 
+# Data and models (binaries)
+data/
+models/
+**/*.pdf
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.model
+
 # gemini-cli settings
 .gemini/
 

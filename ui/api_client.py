@@ -7,12 +7,12 @@ class APIClient:
         self.base_url = base_url
 
     def _get(self, endpoint: str, params: Optional[Dict] = None) -> Any:
-        response = requests.get(f"{self.base_url}/{endpoint}", params=params)
+        response = requests.get(f"{self.base_url}/{endpoint}", params=params, timeout=120.0)
         response.raise_for_status()
         return response.json()
 
     def _post(self, endpoint: str, json_data: Optional[Dict] = None) -> Any:
-        response = requests.post(f"{self.base_url}/{endpoint}", json=json_data)
+        response = requests.post(f"{self.base_url}/{endpoint}", json=json_data, timeout=120.0)
         response.raise_for_status()
         return response.json()
 
@@ -64,7 +64,7 @@ class APIClient:
         
         url = f"{self.base_url}/ingest/upload"
         try:
-            response = requests.post(url, files=payload)
+            response = requests.post(url, files=payload, timeout=120.0)
             if response.status_code != 200:
                 try:
                     detail = response.json().get("detail", response.text)
