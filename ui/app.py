@@ -49,7 +49,7 @@ def generate_pdf_report(matches, job_title):
 
 def check_ingest_task(api, task_id, label):
     try:
-        with st.sidebar.status(f"{label} (Task ID: {task_id})...") as status:
+        with st.status(f"{label} (Task ID: {task_id})...") as status:
             while True:
                 task_info = api.get_task(task_id)
                 status_str = task_info["status"]
@@ -60,10 +60,10 @@ def check_ingest_task(api, task_id, label):
                     processed = output.get("result", {}).get("processed", 0)
                     results = output.get("result", {}).get("results", [])
                     
-                    st.sidebar.success(f"Successfully processed {processed} files.")
+                    st.success(f"Successfully processed {processed} files.")
                     if results:
-                        st.sidebar.write("Results Summary:")
-                        st.sidebar.dataframe(results)
+                        st.write("Results Summary:")
+                        st.dataframe(results)
                         
                     if "active_ingest_task" in st.session_state:
                         del st.session_state["active_ingest_task"]
@@ -72,7 +72,7 @@ def check_ingest_task(api, task_id, label):
                     break
                 elif status_str == "FAILED":
                     status.update(label="Ingestion failed!", state="error", expanded=True)
-                    st.sidebar.error(f"Error: {task_info.get('error_message')}")
+                    st.error(f"Error: {task_info.get('error_message')}")
                     if "active_ingest_task" in st.session_state:
                         del st.session_state["active_ingest_task"]
                     if "active_ingest_label" in st.session_state:
@@ -81,7 +81,7 @@ def check_ingest_task(api, task_id, label):
                 
                 time.sleep(2)
     except Exception as e:
-        st.sidebar.error(f"Error checking process: {e}")
+        st.error(f"Error checking process: {e}")
         if "active_ingest_task" in st.session_state:
             del st.session_state["active_ingest_task"]
 
@@ -150,7 +150,7 @@ def start_ingest_task(api, task, label):
         st.session_state["active_ingest_label"] = label
         st.rerun()
     except Exception as e:
-        st.sidebar.error(f"Error starting process: {e}")
+        st.error(f"Error starting process: {e}")
 
 @st.fragment
 def ingestion_panel(api):
@@ -173,18 +173,18 @@ def ingestion_panel(api):
             if not active_ingest_id:
                 start_ingest_task(api, api.ingest_resumes(input_dir, pattern), f"Ingesting: {input_dir}")
             else:
-                st.sidebar.warning("An ingestion task is already running.")
+                st.warning("An ingestion task is already running.")
 
     with tab2:
         uploaded_files = st.file_uploader("Choose PDF resumes", type=["pdf"], accept_multiple_files=True)
         if st.button("Upload and Process"):
             if not uploaded_files:
-                st.sidebar.warning("Please select at least one file to upload.")
+                st.warning("Please select at least one file to upload.")
             else:
                 if not active_ingest_id:
                     start_ingest_task(api, api.upload_resumes(uploaded_files), f"Uploading {len(uploaded_files)} files")
                 else:
-                    st.sidebar.warning("An ingestion task is already running.")
+                    st.warning("An ingestion task is already running.")
 
 @st.fragment
 def job_panel(api, jobs):
